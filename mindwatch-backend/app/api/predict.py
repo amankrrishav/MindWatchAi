@@ -16,6 +16,9 @@ from app.schemas.timeline import UserTimelineResponse
 from app.services.alert_service import evaluate_and_create_alert
 from app.schemas.alert import RiskAlertResponse
 
+from app.services.behavior_feature_service import extract_behavior_features
+from app.schemas.behavior import BehaviorFeatureResponse
+
 
 router = APIRouter()
 
@@ -119,3 +122,16 @@ def get_user_alerts(user_id: str, db: Session = Depends(get_db)):
     )
 
     return alerts
+
+
+# -------------------------------
+# Behavior Feature Extraction Endpoint
+# -------------------------------
+
+@router.post(
+    "/behavior/extract/{user_id}",
+    response_model=Optional[BehaviorFeatureResponse]
+)
+def extract_behavior(user_id: str, db: Session = Depends(get_db)):
+    feature = extract_behavior_features(user_id, db)
+    return feature

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, JSON
+from sqlalchemy import Column, Float, Integer, String, DateTime, Boolean, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.sqlite import BLOB
 from datetime import datetime
@@ -44,9 +44,9 @@ class PHQ9Analysis(Base):
     created_at = Column(DateTime, server_default=func.now())
 
 
-#Risk A
 
 
+#Risk Feature
 class RiskAlert(Base):
     __tablename__ = "risk_alerts"
 
@@ -57,3 +57,18 @@ class RiskAlert(Base):
     reason = Column(String)
     acknowledged = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class BehaviorFeature(Base):
+    __tablename__ = "behavior_features"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True)
+
+    event_count_24h = Column(Integer)
+    event_count_7d = Column(Integer)
+    negative_event_ratio = Column(Float)
+    volatility_score = Column(Float)
+
+    last_event_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)    
