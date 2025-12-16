@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import Optional, List
 
+from app.db.session import get_db
+from app.db.models import PHQ9Analysis, RiskAlert, RiskSnapshot
+
 from app.services.phq9_scoring import calculate_phq9_score
 from app.schemas.phq9 import PHQ9AnalysisRequest, PHQ9AnalysisResponse
-from app.db.models import PHQ9Analysis, RiskAlert
-from app.db.session import get_db
 
 from app.services.risk_engine import compute_risk_v2
 from app.schemas.risk import RiskResponse
@@ -18,6 +19,9 @@ from app.schemas.alert import RiskAlertResponse
 
 from app.services.behavior_feature_service import extract_behavior_features
 from app.schemas.behavior import BehaviorFeatureResponse
+
+from app.services.risk_snapshot_service import create_risk_snapshot
+from app.schemas.risk_snapshot import RiskSnapshotResponse
 
 
 router = APIRouter()
@@ -65,7 +69,7 @@ def analyze_phq9(
 
 
 # -------------------------------
-# Risk Engine v1 Endpoint
+# Risk Engine v2 Endpoint
 # -------------------------------
 
 @router.get("/risk/{user_id}", response_model=RiskResponse)
@@ -125,7 +129,7 @@ def get_user_alerts(user_id: str, db: Session = Depends(get_db)):
 
 
 # -------------------------------
-# Behavior Feature Extraction Endpoint
+# Behavior Feature Extraction
 # -------------------------------
 
 @router.post(
@@ -135,3 +139,34 @@ def get_user_alerts(user_id: str, db: Session = Depends(get_db)):
 def extract_behavior(user_id: str, db: Session = Depends(get_db)):
     feature = extract_behavior_features(user_id, db)
     return feature
+
+
+# -------------------------------
+# Risk Snapshot Creation
+# -------------------------------
+
+@router.post(
+    "/risk/snapshot/{user_id}",
+    response_model=RiskSnapshotResponse
+)
+def snapshot_risk(user_id: str, db: Session = Depends(get_db)):
+    snapshot = create_risk_snapshot(user_id, db)
+    return snapshot
+
+
+# -------------------------------
+# Fetch Risk History
+# -------------------------------
+
+@router.get(
+    "/risk/snapshots/{user_id}",
+    response_model=List[RiskSnapshotResponse]
+)
+def get_risk_snapshots(user_id: str, db: Session = Depends(get_db)):
+    snapshots = (
+        db.query(RiskSnapshot)
+        .filter(RiskSnapshot.user_id == user_id)
+        .order_by(RiskSnapshot.created_at.desc())
+        .all()
+    )
+    return snapshots

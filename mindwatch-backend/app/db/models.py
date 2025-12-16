@@ -71,4 +71,18 @@ class BehaviorFeature(Base):
     volatility_score = Column(Float)
 
     last_event_at = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class RiskSnapshot(Base):
+    __tablename__ = "risk_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True)
+
+    risk_level = Column(String, nullable=False)
+    confidence = Column(Float, nullable=False)
+    reasons = Column(JSON, nullable=False)
+
+    engine_version = Column(String, default="v2")
+    created_at = Column(DateTime, default=datetime.utcnow)       
