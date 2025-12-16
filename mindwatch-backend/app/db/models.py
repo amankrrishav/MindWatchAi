@@ -42,3 +42,18 @@ class PHQ9Analysis(Base):
     suicide_risk = Column(Boolean, default=False)
 
     created_at = Column(DateTime, server_default=func.now())
+
+
+#Risk A
+
+
+class RiskAlert(Base):
+    __tablename__ = "risk_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True)
+    risk_level = Column(String)
+    confidence = Column(Integer)
+    reason = Column(String)
+    acknowledged = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
