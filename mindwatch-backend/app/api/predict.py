@@ -6,6 +6,9 @@ from app.schemas.phq9 import PHQ9AnalysisRequest, PHQ9AnalysisResponse
 from app.db.models import PHQ9Analysis
 from app.db.session import get_db
 
+from app.services.risk_engine import compute_risk_v1
+from app.schemas.risk import RiskResponse
+
 router = APIRouter()
 
 
@@ -48,3 +51,13 @@ def analyze_phq9(
     db.commit()
 
     return result
+
+#
+@router.get("/risk/{user_id}", response_model=RiskResponse)
+def get_risk(user_id: str, db: Session = Depends(get_db)):
+    result = compute_risk_v1(user_id, db)
+
+    return {
+        "user_id": user_id,
+        **result
+    }
