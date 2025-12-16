@@ -9,6 +9,9 @@ from app.db.session import get_db
 from app.services.risk_engine import compute_risk_v1
 from app.schemas.risk import RiskResponse
 
+from app.services.timeline_service import build_user_timeline
+from app.schemas.timeline import UserTimelineResponse
+
 router = APIRouter()
 
 
@@ -52,7 +55,7 @@ def analyze_phq9(
 
     return result
 
-#
+# risk engine endpoint
 @router.get("/risk/{user_id}", response_model=RiskResponse)
 def get_risk(user_id: str, db: Session = Depends(get_db)):
     result = compute_risk_v1(user_id, db)
@@ -60,4 +63,14 @@ def get_risk(user_id: str, db: Session = Depends(get_db)):
     return {
         "user_id": user_id,
         **result
+    }
+
+# timeline endpoint 
+@router.get("/timeline/{user_id}", response_model=UserTimelineResponse)
+def get_user_timeline(user_id: str, db: Session = Depends(get_db)):
+    timeline = build_user_timeline(user_id, db)
+
+    return {
+        "user_id": user_id,
+        "timeline": timeline
     }
