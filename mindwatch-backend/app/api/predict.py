@@ -7,7 +7,7 @@ from app.schemas.phq9 import PHQ9AnalysisRequest, PHQ9AnalysisResponse
 from app.db.models import PHQ9Analysis, RiskAlert
 from app.db.session import get_db
 
-from app.services.risk_engine import compute_risk_v1
+from app.services.risk_engine import compute_risk_v2
 from app.schemas.risk import RiskResponse
 
 from app.services.timeline_service import build_user_timeline
@@ -70,7 +70,7 @@ def analyze_phq9(
 
 @router.get("/risk/{user_id}", response_model=RiskResponse)
 def get_risk(user_id: str, db: Session = Depends(get_db)):
-    result = compute_risk_v1(user_id, db)
+    result = compute_risk_v2(user_id, db)
 
     return {
         "user_id": user_id,

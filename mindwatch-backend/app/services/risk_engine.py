@@ -69,3 +69,68 @@ def compute_risk_v1(user_id: str, db: Session):
         "confidence": round(score, 2),
         "reasons": reasons
     }
+
+#Risk Engine v2
+from app.db.models import BehaviorFeature
+
+
+def compute_risk_v2(user_id: str, db):
+    """
+    Risk Engine v2
+    Extends v1 using behavior features.
+    """
+
+    # ---- Start with v1 risk ----
+    base = compute_risk_v1(user_id, db)
+
+    score = base["confidence"]
+    reasons = list(base["reasons"])
+
+    # ---- Fetch latest behavior features ----
+    behavior = (
+        db.query(BehaviorFeature)
+        .filter(BehaviorFeature.user_id == user_id)
+        .order_by(BehaviorFeature.created_at.desc())
+        .first()
+    )
+
+    if not behavior:
+        return {
+            "risk_level": base["risk_level"],
+            "confidence": score,
+            "reasons": reasons + ["no_behavior_features"]
+        }
+
+    # ---- Behavior-based adjustments ----
+
+    # High negativity → amplify risk
+    if behavior.negative_event_ratio >= 0.7:
+        score += 0.2
+        reasons.append("high_negative_behavior")
+
+    # High volatility → amplify risk
+    if behavior.volatility_score >= 0.8:
+        score += 0.1
+        reasons.append("behavior_volatility")
+
+    # Sustained activity → further signal
+    if behavior.event_count_24h >= 3:
+        score += 0.05
+        reasons.append("activity_spike")
+
+    # ---- Clamp score ----
+    score = min(score, 1.0)
+
+    # ---- Risk buckets (same thresholds) ----
+    if score < 0.3:
+        risk_level = "low"
+    elif score < 0.7:
+        risk_level = "medium"
+    else:
+        risk_level = "high"
+
+    return {
+        "risk_level": risk_level,
+        "confidence": round(score, 2),
+        "reasons": reasons
+    }
