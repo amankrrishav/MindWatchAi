@@ -118,6 +118,24 @@ def compute_risk_v2(user_id: str, db):
         score += 0.05
         reasons.append("activity_spike")
 
+    # ---- Risk Decay / Recovery Logic ----
+
+    # Do NOT decay if suicide risk is present
+    if "suicide_risk_flag" not in reasons:
+
+        # Behavior has stabilized → allow recovery
+        if behavior:
+            stable_behavior = (
+                behavior.negative_event_ratio < 0.3 and
+                behavior.volatility_score < 0.4 and
+                behavior.event_count_24h <= 1
+            )
+
+            if stable_behavior:
+                score -= 0.2
+                reasons.append("risk_recovery_stable_behavior")
+
+                
     # ---- Clamp score ----
     score = min(score, 1.0)
 
