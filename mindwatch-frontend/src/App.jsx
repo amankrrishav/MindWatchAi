@@ -1,42 +1,44 @@
 import { useEffect, useState } from "react";
 import { fetchUserRisk } from "./api/risk";
+import { fetchRiskSnapshots } from "./api/riskSnapshots";
+
 import RiskOverview from "./components/RiskOverview";
+import RiskTimeline from "./components/RiskTimeline";
 
 function App() {
   const [risk, setRisk] = useState(null);
+  const [snapshots, setSnapshots] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchUserRisk("test_user_001")
-      .then((data) => {
-        console.log("Risk API response:", data);
-        setRisk(data);
+    Promise.all([
+      fetchUserRisk("test_user_001"),
+      fetchRiskSnapshots("test_user_001"),
+    ])
+      .then(([riskData, snapshotData]) => {
+        setRisk(riskData);
+        setSnapshots(snapshotData);
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Risk fetch failed:", err);
-        setError("Failed to load risk data");
+        console.error(err);
         setLoading(false);
       });
   }, []);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading…
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      {loading && <div>Loading risk data...</div>}
-
-      {error && (
-        <div className="text-red-600 font-semibold">
-          {error}
-        </div>
-      )}
-
-      {!loading && risk && (
-        <RiskOverview risk={risk} />
-      )}
-
-      {!loading && !risk && !error && (
-        <div>No risk data available</div>
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10">
+      {risk && <RiskOverview risk={risk} />}
+      {snapshots.length > 0 && (
+        <RiskTimeline snapshots={snapshots} />
       )}
     </div>
   );
