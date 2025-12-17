@@ -9,6 +9,7 @@ import RiskTimeline from "./components/RiskTimeline";
 import AlertFeed from "./components/AlertFeed";
 import RiskSnapshotTable from "./components/RiskSnapshotTable";
 import ExplanationPanel from "./components/ExplanationPanel";
+import RiskContributionBreakdown from "./components/RiskContributionBreakdown";
 
 function App() {
   const [risk, setRisk] = useState(null);
@@ -46,6 +47,7 @@ function App() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 space-y-6">
       {risk && <RiskOverview risk={risk} />}
       {risk && <ExplanationPanel reasons={risk.reasons} />}
+      {risk && <RiskContributionBreakdown reasons={risk.reasons} />}
 
       {snapshots.length > 0 && (
         <RiskTimeline snapshots={snapshots} />
