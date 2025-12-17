@@ -7,6 +7,7 @@ import { fetchUserAlerts } from "./api/alerts";
 import RiskOverview from "./components/RiskOverview";
 import RiskTimeline from "./components/RiskTimeline";
 import AlertFeed from "./components/AlertFeed";
+import RiskSnapshotTable from "./components/RiskSnapshotTable";
 
 function App() {
   const [risk, setRisk] = useState(null);
@@ -41,12 +42,16 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10">
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 space-y-6">
       {risk && <RiskOverview risk={risk} />}
+
       {snapshots.length > 0 && (
         <RiskTimeline snapshots={snapshots} />
       )}
+
       <AlertFeed alerts={alerts} />
+
+      <RiskSnapshotTable snapshots={snapshots} />
     </div>
   );
 }
