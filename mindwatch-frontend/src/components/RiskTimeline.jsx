@@ -7,6 +7,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+import RiskRecoveryInsight from "./RiskRecoveryInsight";
+
 function mapRiskLevel(level) {
   if (level === "low") return 1;
   if (level === "medium") return 2;
@@ -49,6 +51,7 @@ function RiskTimeline({ snapshots }) {
           />
         </LineChart>
       </ResponsiveContainer>
+      <RiskRecoveryInsight snapshots={snapshots} />
     </div>
   );
 }
