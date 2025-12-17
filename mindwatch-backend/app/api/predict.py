@@ -24,6 +24,9 @@ from app.schemas.behavior import BehaviorFeatureResponse
 from app.services.risk_snapshot_service import create_risk_snapshot
 from app.schemas.risk_snapshot import RiskSnapshotResponse
 
+from app.services.explanation_engine import build_explanation
+from app.schemas.explanation import ExplanationResponse
+
 
 router = APIRouter()
 
@@ -61,6 +64,28 @@ def analyze_phq9(
 def get_risk(user_id: str, db: Session = Depends(get_db)):
     result = compute_risk_v2(user_id, db)
     return {"user_id": user_id, **result}
+
+# -------------------------------
+# Clinician Explanation Endpoint
+# -------------------------------
+
+@router.get(
+    "/explanation/{user_id}",
+    response_model=ExplanationResponse
+)
+def get_explanation(user_id: str, db: Session = Depends(get_db)):
+    risk = compute_risk_v2(user_id, db)
+
+    explanation = build_explanation(
+        risk_level=risk["risk_level"],
+        confidence=risk["confidence"],
+        reasons=risk["reasons"]
+    )
+
+    return {
+        "user_id": user_id,
+        **explanation
+    }
 
 
 # ===============================

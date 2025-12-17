@@ -19,22 +19,22 @@ function App() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Central refresh function (used by alerts + future actions)
   const loadAll = async () => {
     setLoading(true);
 
     try {
-      const [riskData, snapshotData, alertData] =
-        await Promise.all([
-          fetchUserRisk(userId),
-          fetchRiskSnapshots(userId),
-          fetchUserAlerts(userId),
-        ]);
+      const [riskData, snapshotData, alertData] = await Promise.all([
+        fetchUserRisk(userId),
+        fetchRiskSnapshots(userId),
+        fetchUserAlerts(userId),
+      ]);
 
       setRisk(riskData);
       setSnapshots(snapshotData);
       setAlerts(alertData);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load dashboard data:", err);
     } finally {
       setLoading(false);
     }
@@ -46,7 +46,7 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center text-gray-600">
         Loading…
       </div>
     );
@@ -54,17 +54,27 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 space-y-6">
+
+      {/* Risk summary */}
       {risk && <RiskOverview risk={risk} />}
+
+      {/* Clinician explanation (Phase 10) */}
       {risk && <ExplanationPanel reasons={risk.reasons} />}
+
+      {/* Contribution breakdown */}
       {risk && <RiskContributionBreakdown reasons={risk.reasons} />}
 
+      {/* Risk timeline */}
       {snapshots.length > 0 && (
         <RiskTimeline snapshots={snapshots} />
       )}
 
+      {/* Alerts (Phase 8 + 9) */}
       <AlertFeed alerts={alerts} onRefresh={loadAll} />
 
+      {/* Snapshot history */}
       <RiskSnapshotTable snapshots={snapshots} />
+
     </div>
   );
 }
