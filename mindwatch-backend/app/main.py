@@ -6,13 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import ingest, predict
 from app.db.session import init_db
 from app.services.daily_snapshot_task import daily_snapshot_worker
-
+from app.services.monitoring_service import monitoring_worker
 
 
 app = FastAPI(title="MindWatch Backend")
 
 # -------------------------------
-# CORS (FRONTEND ACCESS)
+# CORS (Frontend Access)
 # -------------------------------
 app.add_middleware(
     CORSMiddleware,
@@ -29,20 +29,19 @@ app.add_middleware(
 # -------------------------------
 # Startup Events
 # -------------------------------
-
 @app.on_event("startup")
 async def startup():
-    # Initialize database (create tables)
+    # Initialize database (create tables if needed)
     init_db()
 
-    # Start daily auto-snapshot background task
-    asyncio.create_task(daily_snapshot_worker())
+    # Background tasks
+    asyncio.create_task(daily_snapshot_worker())   # once per day
+    asyncio.create_task(monitoring_worker())       # every 5 minutes
 
 
 # -------------------------------
 # Routers
 # -------------------------------
-
 app.include_router(ingest.router, prefix="/ingest")
 app.include_router(predict.router, prefix="/predict")
 
@@ -50,7 +49,6 @@ app.include_router(predict.router, prefix="/predict")
 # -------------------------------
 # Health Check
 # -------------------------------
-
 @app.get("/")
 def health():
     return {"status": "running"}

@@ -63,6 +63,8 @@ class RiskAlert(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+
+# Behavior Feature
 class BehaviorFeature(Base):
     __tablename__ = "behavior_features"
 
@@ -78,6 +80,8 @@ class BehaviorFeature(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+
+# Risk Snapshot
 class RiskSnapshot(Base):
     __tablename__ = "risk_snapshots"
 
@@ -89,4 +93,18 @@ class RiskSnapshot(Base):
     reasons = Column(JSON, nullable=False)
 
     engine_version = Column(String, default="v2")
-    created_at = Column(DateTime, default=datetime.utcnow)       
+    created_at = Column(DateTime, default=datetime.utcnow)  
+
+
+# Monitoring State
+class MonitoringState(Base):
+    __tablename__ = "monitoring_state"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, unique=True, index=True)
+
+    last_risk = Column(String, nullable=True)
+    high_streak = Column(Integer, default=0)
+    cooldown_streak = Column(Integer, default=0)
+
+    updated_at = Column(DateTime, default=datetime.utcnow)      
