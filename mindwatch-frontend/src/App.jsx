@@ -12,27 +12,36 @@ import ExplanationPanel from "./components/ExplanationPanel";
 import RiskContributionBreakdown from "./components/RiskContributionBreakdown";
 
 function App() {
+  const userId = "test_user_001";
+
   const [risk, setRisk] = useState(null);
   const [snapshots, setSnapshots] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const loadAll = async () => {
+    setLoading(true);
+
+    try {
+      const [riskData, snapshotData, alertData] =
+        await Promise.all([
+          fetchUserRisk(userId),
+          fetchRiskSnapshots(userId),
+          fetchUserAlerts(userId),
+        ]);
+
+      setRisk(riskData);
+      setSnapshots(snapshotData);
+      setAlerts(alertData);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    Promise.all([
-      fetchUserRisk("test_user_001"),
-      fetchRiskSnapshots("test_user_001"),
-      fetchUserAlerts("test_user_001"),
-    ])
-      .then(([riskData, snapshotData, alertData]) => {
-        setRisk(riskData);
-        setSnapshots(snapshotData);
-        setAlerts(alertData);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
+    loadAll();
   }, []);
 
   if (loading) {
@@ -53,7 +62,7 @@ function App() {
         <RiskTimeline snapshots={snapshots} />
       )}
 
-      <AlertFeed alerts={alerts} />
+      <AlertFeed alerts={alerts} onRefresh={loadAll} />
 
       <RiskSnapshotTable snapshots={snapshots} />
     </div>

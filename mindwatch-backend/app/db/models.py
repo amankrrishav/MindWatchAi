@@ -52,10 +52,14 @@ class RiskAlert(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String, index=True)
-    risk_level = Column(String)
-    confidence = Column(Float)
-    reasons = Column(String)
+
+    risk_level = Column(String, nullable=False)
+    confidence = Column(Float, nullable=False)
+    reasons = Column(String, nullable=False)
+
     acknowledged = Column(Boolean, default=False)
+    resolved_at = Column(DateTime, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

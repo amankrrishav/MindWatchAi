@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional, List
+from datetime import datetime
 
 from app.db.session import get_db
 from app.db.models import PHQ9Analysis, RiskAlert, RiskSnapshot
@@ -27,9 +28,9 @@ from app.schemas.risk_snapshot import RiskSnapshotResponse
 router = APIRouter()
 
 
-# -------------------------------
-# PHQ-9 Analysis
-# -------------------------------
+# ===============================
+# PHQ-9 ANALYSIS
+# ===============================
 
 @router.post("/phq9/analyze", response_model=PHQ9AnalysisResponse)
 def analyze_phq9(
@@ -52,9 +53,9 @@ def analyze_phq9(
     return result
 
 
-# -------------------------------
-# Risk Engine v2
-# -------------------------------
+# ===============================
+# RISK ENGINE v2
+# ===============================
 
 @router.get("/risk/{user_id}", response_model=RiskResponse)
 def get_risk(user_id: str, db: Session = Depends(get_db)):
@@ -62,9 +63,9 @@ def get_risk(user_id: str, db: Session = Depends(get_db)):
     return {"user_id": user_id, **result}
 
 
-# -------------------------------
-# Timeline
-# -------------------------------
+# ===============================
+# USER TIMELINE
+# ===============================
 
 @router.get("/timeline/{user_id}", response_model=UserTimelineResponse)
 def get_user_timeline(user_id: str, db: Session = Depends(get_db)):
@@ -72,9 +73,9 @@ def get_user_timeline(user_id: str, db: Session = Depends(get_db)):
     return {"user_id": user_id, "timeline": timeline}
 
 
-# -------------------------------
-# Alert Evaluation (CREATE)
-# -------------------------------
+# ===============================
+# ALERT EVALUATION (CREATE)
+# ===============================
 
 @router.post(
     "/alerts/evaluate/{user_id}",
@@ -91,15 +92,15 @@ def evaluate_alert(user_id: str, db: Session = Depends(get_db)):
         "user_id": alert.user_id,
         "risk_level": alert.risk_level,
         "confidence": alert.confidence,
-        "reasons": alert.reasons.split(", "),
+        "reasons": alert.reasons.split(", ") if alert.reasons else [],
         "acknowledged": alert.acknowledged,
         "created_at": alert.created_at,
     }
 
 
-# -------------------------------
-# Alert Fetch (FIXED)
-# -------------------------------
+# ===============================
+# ALERT FETCH (ACTIVE ONLY)
+# ===============================
 
 @router.get(
     "/alerts/{user_id}",
@@ -110,7 +111,7 @@ def get_user_alerts(user_id: str, db: Session = Depends(get_db)):
         db.query(RiskAlert)
         .filter(
             RiskAlert.user_id == user_id,
-            RiskAlert.acknowledged == False  # 🔥 THIS WAS MISSING
+            RiskAlert.acknowledged == False
         )
         .order_by(RiskAlert.created_at.desc())
         .all()
@@ -130,9 +131,66 @@ def get_user_alerts(user_id: str, db: Session = Depends(get_db)):
     ]
 
 
-# -------------------------------
-# Behavior Features
-# -------------------------------
+# ===============================
+# ALERT ACTIONS (PHASE 9.1)
+# ===============================
+
+@router.patch(
+    "/alerts/{alert_id}/acknowledge",
+    response_model=RiskAlertResponse
+)
+def acknowledge_alert(alert_id: int, db: Session = Depends(get_db)):
+    alert = db.query(RiskAlert).filter(RiskAlert.id == alert_id).first()
+
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+
+    if not alert.acknowledged:
+        alert.acknowledged = True
+        db.commit()
+        db.refresh(alert)
+
+    return {
+        "id": alert.id,
+        "user_id": alert.user_id,
+        "risk_level": alert.risk_level,
+        "confidence": alert.confidence,
+        "reasons": alert.reasons.split(", ") if alert.reasons else [],
+        "acknowledged": alert.acknowledged,
+        "created_at": alert.created_at,
+    }
+
+
+@router.patch(
+    "/alerts/{alert_id}/resolve",
+    response_model=RiskAlertResponse
+)
+def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
+    alert = db.query(RiskAlert).filter(RiskAlert.id == alert_id).first()
+
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+
+    if not alert.resolved_at:
+        alert.acknowledged = True
+        alert.resolved_at = datetime.utcnow()
+        db.commit()
+        db.refresh(alert)
+
+    return {
+        "id": alert.id,
+        "user_id": alert.user_id,
+        "risk_level": alert.risk_level,
+        "confidence": alert.confidence,
+        "reasons": alert.reasons.split(", ") if alert.reasons else [],
+        "acknowledged": alert.acknowledged,
+        "created_at": alert.created_at,
+    }
+
+
+# ===============================
+# BEHAVIOR FEATURES
+# ===============================
 
 @router.post(
     "/behavior/extract/{user_id}",
@@ -142,9 +200,9 @@ def extract_behavior(user_id: str, db: Session = Depends(get_db)):
     return extract_behavior_features(user_id, db)
 
 
-# -------------------------------
-# Risk Snapshot
-# -------------------------------
+# ===============================
+# RISK SNAPSHOT
+# ===============================
 
 @router.post(
     "/risk/snapshot/{user_id}",
@@ -154,9 +212,9 @@ def snapshot_risk(user_id: str, db: Session = Depends(get_db)):
     return create_risk_snapshot(user_id, db)
 
 
-# -------------------------------
-# Risk History
-# -------------------------------
+# ===============================
+# RISK HISTORY
+# ===============================
 
 @router.get(
     "/risk/snapshots/{user_id}",
