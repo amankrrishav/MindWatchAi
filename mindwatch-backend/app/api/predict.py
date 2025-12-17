@@ -28,23 +28,7 @@ router = APIRouter()
 
 
 # -------------------------------
-# Placeholder Prediction Endpoint
-# -------------------------------
-
-@router.get("/latest/{user_id}")
-def latest_prediction(user_id: str):
-    return {
-        "user_id": user_id,
-        "risk_score": 0.42,
-        "explanation": {
-            "reason": "placeholder model",
-            "confidence": 0.42
-        }
-    }
-
-
-# -------------------------------
-# PHQ-9 Analysis Endpoint
+# PHQ-9 Analysis
 # -------------------------------
 
 @router.post("/phq9/analyze", response_model=PHQ9AnalysisResponse)
@@ -69,35 +53,27 @@ def analyze_phq9(
 
 
 # -------------------------------
-# Risk Engine v2 Endpoint
+# Risk Engine v2
 # -------------------------------
 
 @router.get("/risk/{user_id}", response_model=RiskResponse)
 def get_risk(user_id: str, db: Session = Depends(get_db)):
     result = compute_risk_v2(user_id, db)
-
-    return {
-        "user_id": user_id,
-        **result
-    }
+    return {"user_id": user_id, **result}
 
 
 # -------------------------------
-# User Timeline Endpoint
+# Timeline
 # -------------------------------
 
 @router.get("/timeline/{user_id}", response_model=UserTimelineResponse)
 def get_user_timeline(user_id: str, db: Session = Depends(get_db)):
     timeline = build_user_timeline(user_id, db)
-
-    return {
-        "user_id": user_id,
-        "timeline": timeline
-    }
+    return {"user_id": user_id, "timeline": timeline}
 
 
 # -------------------------------
-# Risk Alert Evaluation (Manual/System)
+# Alert Evaluation (CREATE)
 # -------------------------------
 
 @router.post(
@@ -106,11 +82,23 @@ def get_user_timeline(user_id: str, db: Session = Depends(get_db)):
 )
 def evaluate_alert(user_id: str, db: Session = Depends(get_db)):
     alert = evaluate_and_create_alert(user_id, db)
-    return alert
+
+    if not alert:
+        return None
+
+    return {
+        "id": alert.id,
+        "user_id": alert.user_id,
+        "risk_level": alert.risk_level,
+        "confidence": alert.confidence,
+        "reasons": alert.reasons.split(", "),
+        "acknowledged": alert.acknowledged,
+        "created_at": alert.created_at,
+    }
 
 
 # -------------------------------
-# Fetch User Alerts
+# Alert Fetch (FIXED)
 # -------------------------------
 
 @router.get(
@@ -120,16 +108,30 @@ def evaluate_alert(user_id: str, db: Session = Depends(get_db)):
 def get_user_alerts(user_id: str, db: Session = Depends(get_db)):
     alerts = (
         db.query(RiskAlert)
-        .filter(RiskAlert.user_id == user_id)
+        .filter(
+            RiskAlert.user_id == user_id,
+            RiskAlert.acknowledged == False  # 🔥 THIS WAS MISSING
+        )
         .order_by(RiskAlert.created_at.desc())
         .all()
     )
 
-    return alerts
+    return [
+        {
+            "id": alert.id,
+            "user_id": alert.user_id,
+            "risk_level": alert.risk_level,
+            "confidence": alert.confidence,
+            "reasons": alert.reasons.split(", ") if alert.reasons else [],
+            "acknowledged": alert.acknowledged,
+            "created_at": alert.created_at,
+        }
+        for alert in alerts
+    ]
 
 
 # -------------------------------
-# Behavior Feature Extraction
+# Behavior Features
 # -------------------------------
 
 @router.post(
@@ -137,12 +139,11 @@ def get_user_alerts(user_id: str, db: Session = Depends(get_db)):
     response_model=Optional[BehaviorFeatureResponse]
 )
 def extract_behavior(user_id: str, db: Session = Depends(get_db)):
-    feature = extract_behavior_features(user_id, db)
-    return feature
+    return extract_behavior_features(user_id, db)
 
 
 # -------------------------------
-# Risk Snapshot Creation
+# Risk Snapshot
 # -------------------------------
 
 @router.post(
@@ -150,12 +151,11 @@ def extract_behavior(user_id: str, db: Session = Depends(get_db)):
     response_model=RiskSnapshotResponse
 )
 def snapshot_risk(user_id: str, db: Session = Depends(get_db)):
-    snapshot = create_risk_snapshot(user_id, db)
-    return snapshot
+    return create_risk_snapshot(user_id, db)
 
 
 # -------------------------------
-# Fetch Risk History
+# Risk History
 # -------------------------------
 
 @router.get(
@@ -163,10 +163,9 @@ def snapshot_risk(user_id: str, db: Session = Depends(get_db)):
     response_model=List[RiskSnapshotResponse]
 )
 def get_risk_snapshots(user_id: str, db: Session = Depends(get_db)):
-    snapshots = (
+    return (
         db.query(RiskSnapshot)
         .filter(RiskSnapshot.user_id == user_id)
         .order_by(RiskSnapshot.created_at.desc())
         .all()
     )
-    return snapshots

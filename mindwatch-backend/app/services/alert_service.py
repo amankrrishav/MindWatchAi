@@ -11,8 +11,8 @@ DEDUP_WINDOW_HOURS = 24
 def evaluate_and_create_alert(user_id: str, db: Session):
     """
     Creates a risk alert ONLY if:
-    - Risk is high
-    - No similar alert exists within dedup window
+    - Risk is HIGH
+    - No similar unacknowledged alert exists within dedup window
     """
 
     risk = compute_risk_v2(user_id, db)
@@ -24,13 +24,13 @@ def evaluate_and_create_alert(user_id: str, db: Session):
     now = datetime.utcnow()
     window_start = now - timedelta(hours=DEDUP_WINDOW_HOURS)
 
-    # Check for existing recent, unacknowledged alerts
+    # Check for existing recent, unacknowledged HIGH alerts
     recent_alert = (
         db.query(RiskAlert)
         .filter(
             RiskAlert.user_id == user_id,
             RiskAlert.risk_level == "high",
-            RiskAlert.acknowledged == False,
+            RiskAlert.acknowledged.is_(False),
             RiskAlert.created_at >= window_start
         )
         .first()
@@ -44,8 +44,10 @@ def evaluate_and_create_alert(user_id: str, db: Session):
     alert = RiskAlert(
         user_id=user_id,
         risk_level="high",
-        confidence=int(risk["confidence"] * 100),
-        reason=", ".join(risk["reasons"])
+        confidence=risk["confidence"],        # ✅ keep as float (0–1)
+        reasons=", ".join(risk["reasons"]),   # ✅ match DB column
+        acknowledged=False,
+        created_at=now
     )
 
     db.add(alert)
