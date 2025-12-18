@@ -144,3 +144,19 @@ class MonitoringState(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
     )
+
+
+# -------------------------------
+# Risk Trend Events (Alerts on Changes)
+# -------------------------------
+class RiskTrendEvent(Base):
+    __tablename__ = "risk_trend_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True)
+
+    direction = Column(String)          # up / down
+    severity = Column(String)           # accelerating / recovering
+    reason = Column(String)
+
+    created_at = Column(DateTime, default=datetime.utcnow)    

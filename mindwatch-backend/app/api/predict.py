@@ -27,6 +27,9 @@ from app.schemas.risk_snapshot import RiskSnapshotResponse
 from app.services.explanation_engine import build_explanation
 from app.schemas.explanation import ExplanationResponse
 
+from app.db.models import RiskTrendEvent
+from app.schemas.risk_trend import RiskTrendEventResponse
+
 
 router = APIRouter()
 
@@ -252,3 +255,21 @@ def get_risk_snapshots(user_id: str, db: Session = Depends(get_db)):
         .order_by(RiskSnapshot.created_at.desc())
         .all()
     )
+
+
+# -------------------------------
+# Risk Trend Events (READ)
+# -------------------------------
+
+@router.get(
+    "/trends/{user_id}",
+    response_model=List[RiskTrendEventResponse]
+)
+def get_risk_trends(user_id: str, db: Session = Depends(get_db)):
+    trends = (
+        db.query(RiskTrendEvent)
+        .filter(RiskTrendEvent.user_id == user_id)
+        .order_by(RiskTrendEvent.created_at.desc())
+        .all()
+    )
+    return trends

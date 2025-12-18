@@ -11,6 +11,7 @@ from app.services.monitoring_state_service import (
     update_state,
 )
 from app.services.risk_trend_service import detect_risk_trend
+from app.services.risk_trend_event_service import store_trend_event
 
 
 # -------------------------------
@@ -54,9 +55,10 @@ async def monitoring_worker():
                 # -------------------------------
                 state = get_or_create_state(user_id, db)
 
+                previous_level = state.last_risk
+
                 # -------------------------------
-                # 🔥 PHASE 11B.1 — Trend detection
-                # (snapshot-based, early warning)
+                # 🔥 PHASE 11B.2 — Trend detection
                 # -------------------------------
                 trend = detect_risk_trend(
                     user_id=user_id,
@@ -64,9 +66,23 @@ async def monitoring_worker():
                     lookback_hours=24,
                 )
 
-                if trend["trend_detected"]:
+                # ✅ Store trend ONLY on actual transition
+                if (
+                    trend["trend_detected"]
+                    and previous_level is not None
+                    and previous_level != level
+                ):
                     print(
-                        f"[Monitoring][TREND] {user_id}: {trend['reason']}"
+                        f"[Monitoring][TREND] {user_id}: "
+                        f"{trend['severity']} | {trend['reason']}"
+                    )
+
+                    store_trend_event(
+                        user_id=user_id,
+                        direction=trend["direction"],
+                        severity=trend["severity"],
+                        reason=trend["reason"],
+                        db=db,
                     )
 
                 # -------------------------------
