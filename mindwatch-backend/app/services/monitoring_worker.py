@@ -21,6 +21,7 @@ from app.services.risk_trend_event_service import store_trend_event
 CHECK_INTERVAL_SECONDS = 300   # 5 minutes
 ESCALATION_THRESHOLD = 2       # High risk for 2 consecutive cycles
 COOLDOWN_THRESHOLD = 3         # Low/Medium for 3 consecutive cycles
+TREND_STREAK_THRESHOLD = 2     # Same trend twice before promotion
 
 
 # -------------------------------
@@ -34,7 +35,6 @@ async def monitoring_worker():
         db: Session = SessionLocal()
 
         try:
-            # Monitor all users with PHQ-9 history
             user_ids = (
                 db.query(PHQ9Analysis.user_id)
                 .distinct()
@@ -55,10 +55,11 @@ async def monitoring_worker():
                 # -------------------------------
                 state = get_or_create_state(user_id, db)
 
-                previous_level = state.last_risk
+                previous_risk = state.last_risk
+                previous_trend = state.last_trend
 
                 # -------------------------------
-                # 🔥 PHASE 11B.2 — Trend detection
+                # Phase 11B — Trend detection
                 # -------------------------------
                 trend = detect_risk_trend(
                     user_id=user_id,
@@ -66,24 +67,36 @@ async def monitoring_worker():
                     lookback_hours=24,
                 )
 
-                # ✅ Store trend ONLY on actual transition
-                if (
-                    trend["trend_detected"]
-                    and previous_level is not None
-                    and previous_level != level
-                ):
-                    print(
-                        f"[Monitoring][TREND] {user_id}: "
-                        f"{trend['severity']} | {trend['reason']}"
-                    )
+                if trend["trend_detected"]:
+                    current_trend = trend["severity"]
 
-                    store_trend_event(
-                        user_id=user_id,
-                        direction=trend["direction"],
-                        severity=trend["severity"],
-                        reason=trend["reason"],
-                        db=db,
-                    )
+                    if current_trend == previous_trend:
+                        state.trend_streak += 1
+                    else:
+                        state.trend_streak = 1
+
+                    if (
+                        previous_risk is not None
+                        and previous_risk != level
+                        and state.trend_streak >= TREND_STREAK_THRESHOLD
+                    ):
+                        print(
+                            f"[Monitoring][TREND] {user_id}: "
+                            f"{trend['severity']} | {trend['reason']}"
+                        )
+
+                        store_trend_event(
+                            user_id=user_id,
+                            direction=trend["direction"],
+                            severity=trend["severity"],
+                            reason=trend["reason"],
+                            db=db,
+                        )
+
+                        state.last_trend = current_trend
+                else:
+                    state.trend_streak = 0
+                    state.last_trend = None
 
                 # -------------------------------
                 # Escalation logic (alerts)
@@ -121,6 +134,8 @@ async def monitoring_worker():
                     last_confidence=confidence,
                     high_streak=state.high_streak,
                     cooldown_streak=state.cooldown_streak,
+                    trend_streak=state.trend_streak,
+                    last_trend=state.last_trend,
                     db=db,
                 )
 

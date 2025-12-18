@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import ingest, predict
 from app.db.session import init_db
 from app.services.daily_snapshot_task import daily_snapshot_worker
-from app.services.monitoring_service import monitoring_worker
+from app.services.monitoring_worker import monitoring_worker
 
 
 app = FastAPI(title="MindWatch Backend")

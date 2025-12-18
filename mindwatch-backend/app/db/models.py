@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     Boolean,
     JSON,
+    Index,
 )
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.sqlite import BLOB
@@ -124,6 +125,10 @@ class RiskSnapshot(Base):
     engine_version = Column(String, default="v2")
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    __table_args__ = (
+        Index("idx_risk_snapshots_user_time", "user_id", "created_at"),
+    )
+
 
 # -------------------------------
 # Monitoring State (Persistent)
@@ -136,8 +141,14 @@ class MonitoringState(Base):
     user_id = Column(String, unique=True, index=True, nullable=False)
 
     last_risk = Column(String, nullable=True)
+    last_confidence = Column(Float, nullable=True)
+
     high_streak = Column(Integer, default=0)
     cooldown_streak = Column(Integer, default=0)
+
+    # 🔥 Phase 11B.3 — Trend memory
+    trend_streak = Column(Integer, default=0)
+    last_trend = Column(String, nullable=True)  # accelerating / recovering
 
     updated_at = Column(
         DateTime,
@@ -147,16 +158,21 @@ class MonitoringState(Base):
 
 
 # -------------------------------
-# Risk Trend Events (Alerts on Changes)
+# Risk Trend Events (Early Warnings)
 # -------------------------------
+
 class RiskTrendEvent(Base):
     __tablename__ = "risk_trend_events"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, index=True)
+    user_id = Column(String, index=True, nullable=False)
 
-    direction = Column(String)          # up / down
-    severity = Column(String)           # accelerating / recovering
-    reason = Column(String)
+    direction = Column(String, nullable=False)   # up / down
+    severity = Column(String, nullable=False)    # accelerating / recovering
+    reason = Column(String, nullable=False)
 
-    created_at = Column(DateTime, default=datetime.utcnow)    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_trend_events_user_time", "user_id", "created_at"),
+    )
