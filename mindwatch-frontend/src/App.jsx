@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { fetchUserRisk } from "./api/risk";
 import { fetchRiskSnapshots } from "./api/riskSnapshots";
 import { fetchUserAlerts } from "./api/alerts";
+import { fetchUserTrends } from "./api/trends";
 
 import RiskOverview from "./components/RiskOverview";
 import RiskTimeline from "./components/RiskTimeline";
@@ -10,6 +11,7 @@ import AlertFeed from "./components/AlertFeed";
 import RiskSnapshotTable from "./components/RiskSnapshotTable";
 import ExplanationPanel from "./components/ExplanationPanel";
 import RiskContributionBreakdown from "./components/RiskContributionBreakdown";
+import RiskTrendBanner from "./components/RiskTrendBanner";
 
 function App() {
   const userId = "test_user_001";
@@ -17,6 +19,7 @@ function App() {
   const [risk, setRisk] = useState(null);
   const [snapshots, setSnapshots] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Central refresh function (used by alerts + future actions)
@@ -24,15 +27,22 @@ function App() {
     setLoading(true);
 
     try {
-      const [riskData, snapshotData, alertData] = await Promise.all([
+      const [
+        riskData,
+        snapshotData,
+        alertData,
+        trendData,
+      ] = await Promise.all([
         fetchUserRisk(userId),
         fetchRiskSnapshots(userId),
         fetchUserAlerts(userId),
+        fetchUserTrends(userId),
       ]);
 
       setRisk(riskData);
       setSnapshots(snapshotData);
       setAlerts(alertData);
+      setTrends(trendData);
     } catch (err) {
       console.error("Failed to load dashboard data:", err);
     } finally {
@@ -55,6 +65,9 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center py-10 space-y-6">
 
+      {/* Phase 12A — Risk Trend Awareness Banner */}
+      <RiskTrendBanner trends={trends} />
+
       {/* Risk summary */}
       {risk && <RiskOverview risk={risk} />}
 
@@ -66,7 +79,7 @@ function App() {
 
       {/* Risk timeline */}
       {snapshots.length > 0 && (
-        <RiskTimeline snapshots={snapshots} />
+        <RiskTimeline snapshots={snapshots} trends={trends} /> //updated from snapshots only to snapshots + trends
       )}
 
       {/* Alerts (Phase 8 + 9) */}
