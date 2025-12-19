@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.db.session import get_db
-from app.db.models import PHQ9Analysis, RiskAlert, RiskSnapshot
+from app.db.models import PHQ9Analysis, RiskAlert, RiskSnapshot, RiskTrendEvent
 
 from app.services.phq9_scoring import calculate_phq9_score
 from app.schemas.phq9 import PHQ9AnalysisRequest, PHQ9AnalysisResponse
@@ -27,11 +27,36 @@ from app.schemas.risk_snapshot import RiskSnapshotResponse
 from app.services.explanation_engine import build_explanation
 from app.schemas.explanation import ExplanationResponse
 
-from app.db.models import RiskTrendEvent
 from app.schemas.risk_trend import RiskTrendEventResponse
+
+# ❤️ Health / heartbeat
+from app.services.monitoring_heartbeat import get_heartbeat
 
 
 router = APIRouter()
+
+# ===============================
+# HEALTH CHECK (PHASE 13.4)
+# ===============================
+
+@router.get("/health")
+def health_check():
+    heartbeat = get_heartbeat()
+
+    if heartbeat is None:
+        return {
+            "status": "starting",
+            "worker_alive": False,
+            "last_heartbeat": None,
+        }
+
+    stale = datetime.utcnow() - heartbeat > timedelta(minutes=6)
+
+    return {
+        "status": "ok" if not stale else "degraded",
+        "worker_alive": not stale,
+        "last_heartbeat": heartbeat.isoformat(),
+    }
 
 
 # ===============================
@@ -67,6 +92,7 @@ def analyze_phq9(
 def get_risk(user_id: str, db: Session = Depends(get_db)):
     result = compute_risk_v2(user_id, db)
     return {"user_id": user_id, **result}
+
 
 # -------------------------------
 # Clinician Explanation Endpoint
@@ -160,7 +186,7 @@ def get_user_alerts(user_id: str, db: Session = Depends(get_db)):
 
 
 # ===============================
-# ALERT ACTIONS (PHASE 9.1)
+# ALERT ACTIONS
 # ===============================
 
 @router.patch(

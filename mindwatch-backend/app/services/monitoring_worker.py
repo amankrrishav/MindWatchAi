@@ -14,6 +14,7 @@ from app.services.monitoring_state_service import (
 )
 from app.services.risk_trend_service import detect_risk_trend
 from app.services.risk_trend_event_service import store_trend_event
+from app.services.monitoring_heartbeat import update_heartbeat  # ❤️ NEW
 
 
 # -------------------------------
@@ -53,6 +54,8 @@ async def monitoring_worker():
 
     while not shutdown_event.is_set():
         db: Session = SessionLocal()
+
+        update_heartbeat()  # ❤️ heartbeat tick (Phase 13.4)
 
         try:
             user_ids = (

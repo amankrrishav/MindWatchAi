@@ -44,11 +44,3 @@ async def startup():
 # -------------------------------
 app.include_router(ingest.router, prefix="/ingest")
 app.include_router(predict.router, prefix="/predict")
-
-
-# -------------------------------
-# Health Check
-# -------------------------------
-@app.get("/")
-def health():
-    return {"status": "running"}
