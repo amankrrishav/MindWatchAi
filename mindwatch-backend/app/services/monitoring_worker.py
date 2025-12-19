@@ -55,6 +55,22 @@ async def monitoring_worker():
                 # -------------------------------
                 state = get_or_create_state(user_id, db)
 
+                # --------------------------------------------------
+                # 🔒 First-run guard (prevents false escalation)
+                # --------------------------------------------------
+                if state.last_risk is None:
+                    update_state(
+                        state,
+                        last_risk=level,
+                        last_confidence=confidence,
+                        high_streak=0,
+                        cooldown_streak=0,
+                        trend_streak=0,
+                        last_trend=None,
+                        db=db,
+                    )
+                    continue
+
                 previous_risk = state.last_risk
                 previous_trend = state.last_trend
 
