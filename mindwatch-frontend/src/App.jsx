@@ -21,6 +21,7 @@ function App() {
   const [alerts, setAlerts] = useState([]);
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Central refresh function (used by alerts + future actions)
   const loadAll = async () => {
@@ -77,16 +78,27 @@ function App() {
       {/* Contribution breakdown */}
       {risk && <RiskContributionBreakdown reasons={risk.reasons} />}
 
-      {/* Risk timeline */}
+      {/* Risk timeline updated to include trend overlays */}
       {snapshots.length > 0 && (
-        <RiskTimeline snapshots={snapshots} trends={trends} /> //updated from snapshots only to snapshots + trends
+        <RiskTimeline snapshots={snapshots} trends={trends} />
       )}
 
       {/* Alerts (Phase 8 + 9) */}
       <AlertFeed alerts={alerts} onRefresh={loadAll} />
 
       {/* Snapshot history */}
-      <RiskSnapshotTable snapshots={snapshots} />
+      <div className="w-full max-w-3xl mt-6">
+  <button
+    onClick={() => setHistoryOpen(!historyOpen)}
+    className="text-sm font-medium text-blue-600 hover:underline mb-2"
+  >
+    {historyOpen ? "Hide history" : "View risk history"}
+  </button>
+
+  {historyOpen && (
+    <RiskSnapshotTable snapshots={snapshots} />
+  )}
+</div>
 
     </div>
   );

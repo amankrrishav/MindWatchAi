@@ -13,9 +13,7 @@ function RiskRecoveryInsight({ snapshots }) {
       : "blue";
 
   return (
-    <div
-      className={`mt-3 text-sm font-medium text-${color}-700`}
-    >
+    <div className={`mt-3 text-sm font-medium text-${color}-700`}>
       {insight.type === "improved" && "🟢 "}
       {insight.type === "worsened" && "🔴 "}
       {insight.type === "stabilizing" && "🔵 "}

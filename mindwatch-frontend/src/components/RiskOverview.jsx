@@ -1,28 +1,54 @@
 function RiskOverview({ risk }) {
-  const color =
-    risk.risk_level === "high"
-      ? "text-red-600"
-      : risk.risk_level === "medium"
-      ? "text-yellow-600"
-      : "text-green-600";
+  const level = risk.risk_level.toLowerCase();
+
+  const styles = {
+    high: {
+      border: "border-red-500",
+      bg: "bg-red-50",
+      bar: "bg-red-500",
+      text: "text-red-700",
+      pulse: "animate-pulse",
+    },
+    medium: {
+      border: "border-yellow-400",
+      bg: "bg-yellow-50",
+      bar: "bg-yellow-400",
+      text: "text-yellow-700",
+      pulse: "",
+    },
+    low: {
+      border: "border-green-400",
+      bg: "bg-green-50",
+      bar: "bg-green-400",
+      text: "text-green-700",
+      pulse: "",
+    },
+  };
+
+  const s = styles[level] || styles.low;
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-      <h2 className="text-xl font-semibold mb-4">Current Risk</h2>
+    <div
+      className={`w-full max-w-3xl rounded-lg shadow-md border ${s.border} ${s.bg} flex overflow-hidden`}
+    >
+      {/* Severity bar */}
+      <div className={`w-2 ${s.bar} ${s.pulse}`} />
 
-      <div className={`text-3xl font-bold ${color}`}>
-        {risk.risk_level.toUpperCase()}
+      {/* Content */}
+      <div className="flex-1 p-6 flex justify-between items-center">
+        <div>
+          <div className={`text-xl font-semibold ${s.text}`}>
+            {risk.risk_level} Risk
+          </div>
+          <div className="text-sm text-gray-600 mt-1">
+            Current assessed mental health risk level
+          </div>
+        </div>
+
+        <div className="text-sm text-gray-700">
+          Confidence: {(risk.confidence * 100).toFixed(0)}%
+        </div>
       </div>
-
-      <div className="mt-2 text-gray-600">
-        Confidence: {(risk.confidence * 100).toFixed(0)}%
-      </div>
-
-      <ul className="mt-4 list-disc list-inside text-sm text-gray-700">
-        {risk.reasons.map((reason, idx) => (
-          <li key={idx}>{reason}</li>
-        ))}
-      </ul>
     </div>
   );
 }

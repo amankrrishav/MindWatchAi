@@ -63,12 +63,14 @@ function RiskTimeline({ snapshots, trends = [] }) {
       <ResponsiveContainer width="100%" height={250}>
         <LineChart data={data}>
           <XAxis dataKey="time" />
+
           <YAxis
             domain={[0, 3]}
             ticks={[1, 2, 3]}
             tickFormatter={(v) =>
               v === 1 ? "Low" : v === 2 ? "Medium" : "High"
             }
+            tick={{ fontSize: 12, fill: "#6b7280" }}
           />
 
           <Tooltip
@@ -77,16 +79,15 @@ function RiskTimeline({ snapshots, trends = [] }) {
             }
           />
 
-          {/* Risk line */}
           <Line
             type="monotone"
             dataKey="riskValue"
-            stroke="#2563eb"
-            strokeWidth={3}
-            dot={{ r: 4 }}
+            stroke="#3b82f6"
+            strokeWidth={2}
+            dot={{ r: 3 }}
           />
 
-          {/* 🔥 Trend markers (Phase 12B) */}
+          {/* Trend markers */}
           {matchedTrends.map((trend, idx) => (
             <ReferenceDot
               key={idx}
@@ -95,8 +96,8 @@ function RiskTimeline({ snapshots, trends = [] }) {
               r={6}
               fill={
                 trend.direction === "up"
-                  ? "#f59e0b" // amber
-                  : "#10b981" // green
+                  ? "#f59e0b"
+                  : "#10b981"
               }
               stroke="none"
               label={{
@@ -113,8 +114,17 @@ function RiskTimeline({ snapshots, trends = [] }) {
         </LineChart>
       </ResponsiveContainer>
 
-      {/* Existing recovery insight */}
-      <RiskRecoveryInsight snapshots={snapshots} />
+      {/* ONE message only — best practice */}
+      {snapshots.length > 1 && (
+        <RiskRecoveryInsight snapshots={snapshots} />
+      )}
+
+      {snapshots.length <= 1 && (
+        <p className="flex items-center gap-2 text-sm text-gray-500 mt-3">
+          <span className="w-3 h-3 rounded-full bg-blue-500 inline-block" />
+          Risk levels over time are shown for context alongside confidence changes.
+        </p>
+      )}
     </div>
   );
 }
