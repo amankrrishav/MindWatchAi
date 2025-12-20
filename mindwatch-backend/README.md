@@ -1,31 +1,34 @@
 🧠 MindWatch Backend
 
-MindWatch is a clinically grounded, behavior-aware mental health monitoring backend that combines validated questionnaires (PHQ-9) with temporal intelligence to produce explainable, safety-first risk assessments over time.
+MindWatch is a clinically grounded, behavior-aware mental health monitoring backend that combines validated psychiatric questionnaires (PHQ-9) with temporal intelligence to produce explainable, safety-first risk assessments over time.
 
 This system is intentionally deterministic, auditable, and clinically sane —
 not a black-box ML model and not a consumer wellness gimmick.
 
+MindWatch is built as a long-running monitoring system, not a one-time assessment tool.
+
 ⸻
 
-🚀 Core Capabilities
+🚀 Core Capabilities (Locked at Phase 16.1.1)
 
 ⸻
 
 1️⃣ Clinical Signal Processing
-	•	PHQ-9 ingestion and scoring
-	•	Severity classification (low / medium / high)
-	•	Suicide ideation detection (Q9 safety override)
-	•	Session-aware assessments
+	•	PHQ-9 ingestion, validation, and scoring
+	•	Severity classification: low / medium / high
+	•	Suicide ideation detection via Q9 hard override
+	•	Session-safe assessment handling
 	•	Historical PHQ-9 persistence
+	•	Audit-grade answer storage and traceability
 
 ⸻
 
 2️⃣ Behavioral Intelligence (Extensible Layer)
 	•	Timestamped behavioral event ingestion
-	•	Feature extraction pipeline:
+	•	Feature extraction:
 	•	Activity volume
 	•	Negativity ratio
-	•	Volatility
+	•	Behavioral volatility
 	•	Behavior-aware risk amplification (Risk Engine v2)
 	•	Designed for future passive signals:
 	•	Sleep
@@ -36,60 +39,57 @@ not a black-box ML model and not a consumer wellness gimmick.
 ⸻
 
 3️⃣ Risk Engine (Versioned & Explainable)
-	•	Risk Engine v1: PHQ-9 only (clinical baseline reference)
-	•	Risk Engine v2: PHQ-9 + behavior features
-	•	Deterministic scoring (no stochastic output)
-	•	Fully explainable reasoning tree
+	•	Risk Engine v1 — PHQ-9 only (clinical baseline)
+	•	Risk Engine v2 — PHQ-9 + behavioral features
+	•	Fully deterministic scoring
+	•	Explainable reasoning tree
 	•	Confidence-aware outputs
 	•	Safety-first escalation logic
-	•	Explicit support for risk decay & recovery
+	•	Explicit support for risk decay and recovery
 
 ⸻
 
 4️⃣ Continuous Monitoring & Persistent Memory
-	•	Persistent Monitoring State per user:
+	•	Persistent per-user monitoring state:
 	•	Last risk level
-	•	Last confidence
+	•	Last confidence score
 	•	High-risk streak counter
-	•	Cooldown / recovery streak counter
-	•	Trend streak counter
+	•	Cooldown / recovery streak
+	•	Trend streak
 	•	Continuous background evaluation loop
 	•	Restart-safe and idempotent
 	•	No frontend polling required
+	•	Designed for longitudinal monitoring
 
 ⸻
 
 5️⃣ Risk Trends & Early Intelligence (Phase 11B)
 	•	Snapshot-based trend detection
-	•	Detects:
-	•	Accelerating risk
-	•	Recovering risk
-	•	Trend events stored separately from alerts
-	•	Streak-based promotion to avoid noise
-	•	Enables early clinical awareness without panic
-	•	Designed for foresight, not reaction
+	•	Detects accelerating and recovering risk
+	•	Trends stored separately from alerts
+	•	Streak-based promotion to suppress noise
+	•	Enables early awareness without panic
 
 ⸻
 
 6️⃣ Alerts & Safety Controls
 	•	Alerts triggered only for HIGH risk
-	•	Escalation requires consecutive confirmation
-	•	24-hour alert deduplication window
-	•	One active alert per user at a time
-	•	Acknowledge / resolve lifecycle
+	•	Consecutive confirmation required
+	•	24-hour deduplication window
+	•	One active alert per user
+	•	Full acknowledge / resolve lifecycle
 	•	Recovery-aware suppression
-	•	Designed to prevent alert fatigue and desensitization
+	•	Designed to prevent alert fatigue
 
 ⸻
 
 7️⃣ Snapshot Memory & Noise Reduction (Phase 11B.4)
-	•	Risk snapshots persisted as time-series memory
+	•	Risk snapshots stored as clean time-series memory
 	•	Duplicate snapshot prevention
 	•	Confidence-delta filtering
-	•	Engine-version guard
+	•	Engine-version guards
 	•	Time-based compression
-	•	Prevents database pollution
-	•	Produces clean, meaningful timelines for UI & audits
+	•	Clean timelines for UI, analytics, and audits
 
 ⸻
 
@@ -97,21 +97,40 @@ not a black-box ML model and not a consumer wellness gimmick.
 	•	Continuous monitoring worker
 	•	Daily auto-snapshot worker
 	•	Fully async, FastAPI-native
-	•	Non-blocking and production-safe
 	•	User-level failure isolation
-	•	Graceful shutdown support (SIGINT / SIGTERM)
+	•	Graceful shutdown (SIGINT / SIGTERM)
 	•	Restart-safe execution
 
 ⸻
 
 9️⃣ System Health & Reliability (Phase 13)
 	•	Worker heartbeat mechanism
-	•	Health endpoint (/health) exposing:
+	•	/health endpoint exposing:
 	•	System status (ok / degraded / starting)
 	•	Worker liveness
 	•	Last heartbeat timestamp
 	•	Safe restarts without false alerts or trends
-	•	Operational visibility for deployment & SRE use
+
+⸻
+
+🔐 Determinism & Safety Lock (Phase 16.1.1)
+	•	Single-fire alert guarantees
+	•	Trend de-duplication
+	•	Snapshot idempotency
+	•	Engine-version immutability
+	•	Restart immunity
+	•	Explicit uncertainty handling
+	•	Same input + same state = same output
+
+⸻
+
+🧠 Human Question Interface (Foundational)
+	•	Orchestration-driven questioning
+	•	Deterministic question sequencing
+	•	One question → one action guarantee
+	•	Answer & skip flows are audit-safe
+	•	PHQ answer → score mapping persisted
+	•	Silent-by-default UX philosophy
 
 
 🏗️ System Architecture (Current)
