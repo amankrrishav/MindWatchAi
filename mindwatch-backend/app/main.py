@@ -9,6 +9,10 @@ from app.services.daily_snapshot_task import daily_snapshot_worker
 from app.services.monitoring_worker import monitoring_worker
 
 
+# from app.api import questions
+from app.api import questions
+
+
 app = FastAPI(title="MindWatch Backend")
 
 # -------------------------------
@@ -44,3 +48,4 @@ async def startup():
 # -------------------------------
 app.include_router(ingest.router, prefix="/ingest")
 app.include_router(predict.router, prefix="/predict")
+app.include_router(questions.router)

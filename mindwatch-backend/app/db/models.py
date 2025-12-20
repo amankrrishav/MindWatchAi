@@ -176,3 +176,70 @@ class RiskTrendEvent(Base):
     __table_args__ = (
         Index("idx_trend_events_user_time", "user_id", "created_at"),
     )
+
+# -------------------------------
+# Orchestration Decisions (Phase 14)
+# -------------------------------
+
+class OrchestrationDecision(Base):
+    __tablename__ = "orchestration_decisions"
+
+    id = Column(
+        BLOB,
+        primary_key=True,
+        default=lambda: uuid.uuid4().bytes,
+    )
+
+    user_id = Column(String, index=True, nullable=False)
+
+    decision = Column(String, nullable=False)  # ask / dont_ask
+    uncertainty_reason = Column(String, nullable=True)
+
+    confidence = Column(Float, nullable=False)
+
+    created_at = Column(DateTime, server_default=func.now())
+
+
+# -------------------------------
+# Human Questions (Phase 15)
+# -------------------------------
+
+class HumanQuestion(Base):
+    __tablename__ = "human_questions"
+
+    id = Column(String, primary_key=True)  # stable question id (q-1, q-2…)
+
+    clinical_key = Column(String, nullable=False)
+    question_text = Column(String, nullable=False)
+
+    risk_level = Column(String, nullable=False)  # low / medium / high
+    active = Column(Boolean, default=True)
+
+    created_at = Column(DateTime, server_default=func.now())       
+
+
+# -------------------------------
+# Human Answers (Phase 15)
+# -------------------------------
+
+class HumanAnswer(Base):
+    __tablename__ = "human_answers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False)
+    question_id = Column(String, nullable=False)
+    answer_key = Column(String, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+# -------------------------------
+# Answer → PHQ Mapping (Phase 15)
+# -------------------------------
+
+class AnswerPHQMapping(Base):
+    __tablename__ = "answer_phq_mapping"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    clinical_key = Column(String, nullable=False)
+    answer_key = Column(String, nullable=False)
+    phq_score = Column(Integer, nullable=False)
