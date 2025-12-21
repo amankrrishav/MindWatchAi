@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Response, status, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from datetime import datetime
 
 from app.db.session import get_db
 from app.contracts.question_card import build_question_card
@@ -13,7 +14,12 @@ from app.db.models import (
     HumanAnswer,
     AnswerPHQMapping,
     PHQ9Label,
+    QuestionGuardrailState,
 )
+
+from app.guardrails.evaluator import guardrails_blocked
+from app.guardrails.constants import ANSWER_COOLDOWN, SKIP_COOLDOWN
+
 
 router = APIRouter(prefix="/api/questions", tags=["questions"])
 
@@ -43,6 +49,13 @@ class AnswerPayload(BaseModel):
 def get_next_question(db: Session = Depends(get_db)):
     user_id = get_current_user_id()
 
+    # Load guardrail state
+    state = db.get(QuestionGuardrailState, user_id)
+
+    # Silent guardrail block
+    if state and guardrails_blocked(state):
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
     decision = (
         db.query(OrchestrationDecision)
         .filter_by(user_id=user_id)
@@ -50,7 +63,6 @@ def get_next_question(db: Session = Depends(get_db)):
         .first()
     )
 
-    # Stay silent if no decision or dont_ask
     if not decision or decision.decision != "ask":
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -81,6 +93,25 @@ def get_next_question(db: Session = Depends(get_db)):
 
     q = selected[0]
 
+    # Ensure guardrail state exists
+    if not state:
+        state = QuestionGuardrailState(
+            user_id=user_id,
+            questions_today=0,
+            skips_today=0,
+        )
+        db.add(state)
+
+    # Safe counter initialization
+    if state.questions_today is None:
+        state.questions_today = 0
+
+    state.last_question_at = datetime.utcnow()
+    state.questions_today += 1
+    state.updated_at = datetime.utcnow()
+
+    db.commit()
+
     return build_question_card(
         question_id=q["id"],
         question_text=q["question_text"],
@@ -101,7 +132,6 @@ def submit_answer(
     if not validate_answer(payload.answer_key):
         raise HTTPException(status_code=400, detail="Invalid answer")
 
-    # Ensure question exists
     question = (
         db.query(HumanQuestion)
         .filter_by(id=question_id, active=True)
@@ -110,7 +140,17 @@ def submit_answer(
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
 
-    # Store human answer
+    existing = (
+        db.query(HumanAnswer)
+        .filter_by(user_id=user_id, question_id=question_id)
+        .first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail="Question already handled",
+        )
+
     answer = HumanAnswer(
         user_id=user_id,
         question_id=question_id,
@@ -118,7 +158,6 @@ def submit_answer(
     )
     db.add(answer)
 
-    # Map to PHQ score (Phase 15.3)
     mapping = (
         db.query(AnswerPHQMapping)
         .filter_by(
@@ -136,20 +175,34 @@ def submit_answer(
             )
         )
 
-    db.commit()
+    # Guardrail update
+    state = db.get(QuestionGuardrailState, user_id)
+    if not state:
+        state = QuestionGuardrailState(
+            user_id=user_id,
+            questions_today=0,
+            skips_today=0,
+        )
+        db.add(state)
 
+    state.last_answer_at = datetime.utcnow()
+    state.cooldown_until = state.last_answer_at + ANSWER_COOLDOWN
+    state.updated_at = datetime.utcnow()
+
+    db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-from fastapi import HTTPException
 
-@router.post("/{question_id}/skip", status_code=204)
+# -------------------------------
+# SKIP QUESTION
+# -------------------------------
+@router.post("/{question_id}/skip", status_code=status.HTTP_204_NO_CONTENT)
 def skip_question(
     question_id: str,
     db: Session = Depends(get_db),
 ):
     user_id = get_current_user_id()
 
-    # Ensure question exists and is active
     question = (
         db.query(HumanQuestion)
         .filter_by(id=question_id, active=True)
@@ -158,7 +211,6 @@ def skip_question(
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
 
-    # Prevent answering/skipping the same question twice
     existing = (
         db.query(HumanAnswer)
         .filter_by(user_id=user_id, question_id=question_id)
@@ -170,12 +222,30 @@ def skip_question(
             detail="Question already handled",
         )
 
-    # Record skip as a human answer
     skip_entry = HumanAnswer(
         user_id=user_id,
         question_id=question_id,
         answer_key="skipped",
     )
-
     db.add(skip_entry)
+
+    # Guardrail update
+    state = db.get(QuestionGuardrailState, user_id)
+    if not state:
+        state = QuestionGuardrailState(
+            user_id=user_id,
+            questions_today=0,
+            skips_today=0,
+        )
+        db.add(state)
+
+    if state.skips_today is None:
+        state.skips_today = 0
+
+    state.last_skip_at = datetime.utcnow()
+    state.skips_today += 1
+    state.cooldown_until = state.last_skip_at + SKIP_COOLDOWN
+    state.updated_at = datetime.utcnow()
+
     db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

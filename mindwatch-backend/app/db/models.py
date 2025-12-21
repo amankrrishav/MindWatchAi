@@ -243,3 +243,18 @@ class AnswerPHQMapping(Base):
     clinical_key = Column(String, nullable=False)
     answer_key = Column(String, nullable=False)
     phq_score = Column(Integer, nullable=False)
+
+class QuestionGuardrailState(Base):
+    __tablename__ = "question_guardrail_state"
+
+    user_id = Column(String, primary_key=True)
+
+    last_question_at = Column(DateTime)
+    last_answer_at = Column(DateTime)
+    last_skip_at = Column(DateTime)
+
+    questions_today = Column(Integer, nullable=False, default=0)
+    skips_today = Column(Integer, nullable=False, default=0)
+
+    cooldown_until = Column(DateTime)
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())    
