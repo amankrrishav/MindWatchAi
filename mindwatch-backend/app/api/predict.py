@@ -29,20 +29,17 @@ from app.schemas.explanation import ExplanationResponse
 
 from app.schemas.risk_trend import RiskTrendEventResponse
 
-# ❤️ Health / heartbeat
 from app.services.monitoring_heartbeat import get_heartbeat
-
 
 router = APIRouter()
 
 # ===============================
-# HEALTH CHECK (PHASE 13.4)
+# HEALTH
 # ===============================
 
 @router.get("/health")
 def health_check():
     heartbeat = get_heartbeat()
-
     if heartbeat is None:
         return {
             "status": "starting",
@@ -51,23 +48,18 @@ def health_check():
         }
 
     stale = datetime.utcnow() - heartbeat > timedelta(minutes=6)
-
     return {
         "status": "ok" if not stale else "degraded",
         "worker_alive": not stale,
         "last_heartbeat": heartbeat.isoformat(),
     }
 
-
 # ===============================
-# PHQ-9 ANALYSIS
+# PHQ-9
 # ===============================
 
 @router.post("/phq9/analyze", response_model=PHQ9AnalysisResponse)
-def analyze_phq9(
-    payload: PHQ9AnalysisRequest,
-    db: Session = Depends(get_db)
-):
+def analyze_phq9(payload: PHQ9AnalysisRequest, db: Session = Depends(get_db)):
     result = calculate_phq9_score(payload.answers)
 
     record = PHQ9Analysis(
@@ -80,12 +72,10 @@ def analyze_phq9(
 
     db.add(record)
     db.commit()
-
     return result
 
-
 # ===============================
-# RISK ENGINE v2
+# RISK
 # ===============================
 
 @router.get("/risk/{user_id}", response_model=RiskResponse)
@@ -93,32 +83,22 @@ def get_risk(user_id: str, db: Session = Depends(get_db)):
     result = compute_risk_v2(user_id, db)
     return {"user_id": user_id, **result}
 
+# ===============================
+# EXPLANATION
+# ===============================
 
-# -------------------------------
-# Clinician Explanation Endpoint
-# -------------------------------
-
-@router.get(
-    "/explanation/{user_id}",
-    response_model=ExplanationResponse
-)
+@router.get("/explanation/{user_id}", response_model=ExplanationResponse)
 def get_explanation(user_id: str, db: Session = Depends(get_db)):
     risk = compute_risk_v2(user_id, db)
-
     explanation = build_explanation(
         risk_level=risk["risk_level"],
         confidence=risk["confidence"],
         reasons=risk["reasons"]
     )
-
-    return {
-        "user_id": user_id,
-        **explanation
-    }
-
+    return {"user_id": user_id, **explanation}
 
 # ===============================
-# USER TIMELINE
+# TIMELINE
 # ===============================
 
 @router.get("/timeline/{user_id}", response_model=UserTimelineResponse)
@@ -126,18 +106,13 @@ def get_user_timeline(user_id: str, db: Session = Depends(get_db)):
     timeline = build_user_timeline(user_id, db)
     return {"user_id": user_id, "timeline": timeline}
 
-
 # ===============================
-# ALERT EVALUATION (CREATE)
+# ALERTS
 # ===============================
 
-@router.post(
-    "/alerts/evaluate/{user_id}",
-    response_model=Optional[RiskAlertResponse]
-)
+@router.post("/alerts/evaluate/{user_id}", response_model=Optional[RiskAlertResponse])
 def evaluate_alert(user_id: str, db: Session = Depends(get_db)):
     alert = evaluate_and_create_alert(user_id, db)
-
     if not alert:
         return None
 
@@ -151,123 +126,30 @@ def evaluate_alert(user_id: str, db: Session = Depends(get_db)):
         "created_at": alert.created_at,
     }
 
-
-# ===============================
-# ALERT FETCH (ACTIVE ONLY)
-# ===============================
-
-@router.get(
-    "/alerts/{user_id}",
-    response_model=List[RiskAlertResponse]
-)
+@router.get("/alerts/{user_id}", response_model=List[RiskAlertResponse])
 def get_user_alerts(user_id: str, db: Session = Depends(get_db)):
     alerts = (
         db.query(RiskAlert)
-        .filter(
-            RiskAlert.user_id == user_id,
-            RiskAlert.acknowledged == False
-        )
+        .filter(RiskAlert.user_id == user_id, RiskAlert.acknowledged == False)
         .order_by(RiskAlert.created_at.desc())
         .all()
     )
 
     return [
         {
-            "id": alert.id,
-            "user_id": alert.user_id,
-            "risk_level": alert.risk_level,
-            "confidence": alert.confidence,
-            "reasons": alert.reasons.split(", ") if alert.reasons else [],
-            "acknowledged": alert.acknowledged,
-            "created_at": alert.created_at,
+            "id": a.id,
+            "user_id": a.user_id,
+            "risk_level": a.risk_level,
+            "confidence": a.confidence,
+            "reasons": a.reasons.split(", ") if a.reasons else [],
+            "acknowledged": a.acknowledged,
+            "created_at": a.created_at,
         }
-        for alert in alerts
+        for a in alerts
     ]
 
-
 # ===============================
-# ALERT ACTIONS
-# ===============================
-
-@router.patch(
-    "/alerts/{alert_id}/acknowledge",
-    response_model=RiskAlertResponse
-)
-def acknowledge_alert(alert_id: int, db: Session = Depends(get_db)):
-    alert = db.query(RiskAlert).filter(RiskAlert.id == alert_id).first()
-
-    if not alert:
-        raise HTTPException(status_code=404, detail="Alert not found")
-
-    if not alert.acknowledged:
-        alert.acknowledged = True
-        db.commit()
-        db.refresh(alert)
-
-    return {
-        "id": alert.id,
-        "user_id": alert.user_id,
-        "risk_level": alert.risk_level,
-        "confidence": alert.confidence,
-        "reasons": alert.reasons.split(", ") if alert.reasons else [],
-        "acknowledged": alert.acknowledged,
-        "created_at": alert.created_at,
-    }
-
-
-@router.patch(
-    "/alerts/{alert_id}/resolve",
-    response_model=RiskAlertResponse
-)
-def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
-    alert = db.query(RiskAlert).filter(RiskAlert.id == alert_id).first()
-
-    if not alert:
-        raise HTTPException(status_code=404, detail="Alert not found")
-
-    if not alert.resolved_at:
-        alert.acknowledged = True
-        alert.resolved_at = datetime.utcnow()
-        db.commit()
-        db.refresh(alert)
-
-    return {
-        "id": alert.id,
-        "user_id": alert.user_id,
-        "risk_level": alert.risk_level,
-        "confidence": alert.confidence,
-        "reasons": alert.reasons.split(", ") if alert.reasons else [],
-        "acknowledged": alert.acknowledged,
-        "created_at": alert.created_at,
-    }
-
-
-# ===============================
-# BEHAVIOR FEATURES
-# ===============================
-
-@router.post(
-    "/behavior/extract/{user_id}",
-    response_model=Optional[BehaviorFeatureResponse]
-)
-def extract_behavior(user_id: str, db: Session = Depends(get_db)):
-    return extract_behavior_features(user_id, db)
-
-
-# ===============================
-# RISK SNAPSHOT
-# ===============================
-
-@router.post(
-    "/risk/snapshot/{user_id}",
-    response_model=RiskSnapshotResponse
-)
-def snapshot_risk(user_id: str, db: Session = Depends(get_db)):
-    return create_risk_snapshot(user_id, db)
-
-
-# ===============================
-# RISK HISTORY
+# RISK SNAPSHOT (FIXED)
 # ===============================
 
 @router.get(
@@ -275,27 +157,51 @@ def snapshot_risk(user_id: str, db: Session = Depends(get_db)):
     response_model=List[RiskSnapshotResponse]
 )
 def get_risk_snapshots(user_id: str, db: Session = Depends(get_db)):
-    return (
+    snapshots = (
         db.query(RiskSnapshot)
         .filter(RiskSnapshot.user_id == user_id)
         .order_by(RiskSnapshot.created_at.desc())
         .all()
     )
 
+    result = []
 
-# -------------------------------
-# Risk Trend Events (READ)
-# -------------------------------
+    for s in snapshots:
+        raw_reasons = s.reasons or []
+
+        normalized_reasons: List[str] = []
+        for r in raw_reasons:
+            if isinstance(r, dict):
+                normalized_reasons.append(
+                    f"{r.get('factor')}: {r.get('impact')}"
+                )
+            else:
+                normalized_reasons.append(str(r))
+
+        result.append({
+            "id": s.id,
+            "user_id": s.user_id,
+            "risk_level": s.risk_level,
+            "confidence": s.confidence,
+            "reasons": normalized_reasons,
+            "engine_version": s.engine_version,
+            "created_at": s.created_at,
+        })
+
+    return result
+
+# ===============================
+# TRENDS
+# ===============================
 
 @router.get(
     "/trends/{user_id}",
     response_model=List[RiskTrendEventResponse]
 )
 def get_risk_trends(user_id: str, db: Session = Depends(get_db)):
-    trends = (
+    return (
         db.query(RiskTrendEvent)
         .filter(RiskTrendEvent.user_id == user_id)
         .order_by(RiskTrendEvent.created_at.desc())
         .all()
     )
-    return trends
