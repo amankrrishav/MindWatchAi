@@ -1,0 +1,1 @@
+export const USER_ID = "test-user-uuid"; // TEMP (Phase 17 will replace)
