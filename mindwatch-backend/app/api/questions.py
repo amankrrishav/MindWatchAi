@@ -19,20 +19,10 @@ from app.db.models import (
 
 from app.guardrails.evaluator import guardrails_blocked
 from app.guardrails.constants import ANSWER_COOLDOWN, SKIP_COOLDOWN
+from app.auth.context import get_current_user_id
 
 
 router = APIRouter(prefix="/api/questions", tags=["questions"])
-
-
-# -------------------------------
-# TEMP USER STUB
-# -------------------------------
-def get_current_user_id():
-    """
-    TEMPORARY stub.
-    Will be replaced with real auth later.
-    """
-    return "test-user-uuid"
 
 
 # -------------------------------
@@ -46,9 +36,10 @@ class AnswerPayload(BaseModel):
 # GET NEXT QUESTION
 # -------------------------------
 @router.get("/next")
-def get_next_question(db: Session = Depends(get_db)):
-    user_id = get_current_user_id()
-
+def get_next_question(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     # Load guardrail state
     state = db.get(QuestionGuardrailState, user_id)
 
@@ -102,7 +93,6 @@ def get_next_question(db: Session = Depends(get_db)):
         )
         db.add(state)
 
-    # Safe counter initialization
     if state.questions_today is None:
         state.questions_today = 0
 
@@ -125,10 +115,9 @@ def get_next_question(db: Session = Depends(get_db)):
 def submit_answer(
     question_id: str,
     payload: AnswerPayload,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    user_id = get_current_user_id()
-
     if not validate_answer(payload.answer_key):
         raise HTTPException(status_code=400, detail="Invalid answer")
 
@@ -146,10 +135,7 @@ def submit_answer(
         .first()
     )
     if existing:
-        raise HTTPException(
-            status_code=409,
-            detail="Question already handled",
-        )
+        raise HTTPException(status_code=409, detail="Question already handled")
 
     answer = HumanAnswer(
         user_id=user_id,
@@ -199,10 +185,9 @@ def submit_answer(
 @router.post("/{question_id}/skip", status_code=status.HTTP_204_NO_CONTENT)
 def skip_question(
     question_id: str,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    user_id = get_current_user_id()
-
     question = (
         db.query(HumanQuestion)
         .filter_by(id=question_id, active=True)
@@ -217,10 +202,7 @@ def skip_question(
         .first()
     )
     if existing:
-        raise HTTPException(
-            status_code=409,
-            detail="Question already handled",
-        )
+        raise HTTPException(status_code=409, detail="Question already handled")
 
     skip_entry = HumanAnswer(
         user_id=user_id,
