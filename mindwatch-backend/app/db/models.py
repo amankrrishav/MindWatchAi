@@ -7,6 +7,7 @@ from sqlalchemy import (
     Boolean,
     JSON,
     Index,
+    Text,
 )
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.sqlite import BLOB
@@ -146,9 +147,9 @@ class MonitoringState(Base):
     high_streak = Column(Integer, default=0)
     cooldown_streak = Column(Integer, default=0)
 
-    # 🔥 Phase 11B.3 — Trend memory
+    # Phase 11B.3 — Trend memory
     trend_streak = Column(Integer, default=0)
-    last_trend = Column(String, nullable=True)  # accelerating / recovering
+    last_trend = Column(String, nullable=True)
 
     updated_at = Column(
         DateTime,
@@ -158,7 +159,7 @@ class MonitoringState(Base):
 
 
 # -------------------------------
-# Risk Trend Events (Early Warnings)
+# Risk Trend Events
 # -------------------------------
 
 class RiskTrendEvent(Base):
@@ -167,8 +168,8 @@ class RiskTrendEvent(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String, index=True, nullable=False)
 
-    direction = Column(String, nullable=False)   # up / down
-    severity = Column(String, nullable=False)    # accelerating / recovering
+    direction = Column(String, nullable=False)
+    severity = Column(String, nullable=False)
     reason = Column(String, nullable=False)
 
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -177,8 +178,9 @@ class RiskTrendEvent(Base):
         Index("idx_trend_events_user_time", "user_id", "created_at"),
     )
 
+
 # -------------------------------
-# Orchestration Decisions (Phase 14)
+# Orchestration Decisions
 # -------------------------------
 
 class OrchestrationDecision(Base):
@@ -192,7 +194,7 @@ class OrchestrationDecision(Base):
 
     user_id = Column(String, index=True, nullable=False)
 
-    decision = Column(String, nullable=False)  # ask / dont_ask
+    decision = Column(String, nullable=False)
     uncertainty_reason = Column(String, nullable=True)
 
     confidence = Column(Float, nullable=False)
@@ -201,25 +203,24 @@ class OrchestrationDecision(Base):
 
 
 # -------------------------------
-# Human Questions (Phase 15)
+# Human Questions
 # -------------------------------
 
 class HumanQuestion(Base):
     __tablename__ = "human_questions"
 
-    id = Column(String, primary_key=True)  # stable question id (q-1, q-2…)
-
+    id = Column(String, primary_key=True)
     clinical_key = Column(String, nullable=False)
     question_text = Column(String, nullable=False)
 
-    risk_level = Column(String, nullable=False)  # low / medium / high
+    risk_level = Column(String, nullable=False)
     active = Column(Boolean, default=True)
 
-    created_at = Column(DateTime, server_default=func.now())       
+    created_at = Column(DateTime, server_default=func.now())
 
 
 # -------------------------------
-# Human Answers (Phase 15)
+# Human Answers
 # -------------------------------
 
 class HumanAnswer(Base):
@@ -231,18 +232,23 @@ class HumanAnswer(Base):
     answer_key = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
+
 # -------------------------------
-# Answer → PHQ Mapping (Phase 15)
+# Answer → PHQ Mapping
 # -------------------------------
 
 class AnswerPHQMapping(Base):
     __tablename__ = "answer_phq_mapping"
 
     id = Column(Integer, primary_key=True, index=True)
-
     clinical_key = Column(String, nullable=False)
     answer_key = Column(String, nullable=False)
     phq_score = Column(Integer, nullable=False)
+
+
+# -------------------------------
+# Question Guardrail State
+# -------------------------------
 
 class QuestionGuardrailState(Base):
     __tablename__ = "question_guardrail_state"
@@ -257,4 +263,33 @@ class QuestionGuardrailState(Base):
     skips_today = Column(Integer, nullable=False, default=0)
 
     cooldown_until = Column(DateTime)
-    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())    
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
+# -------------------------------
+# Notification Intents (Phase 16.1.3)
+# -------------------------------
+
+class NotificationIntent(Base):
+    __tablename__ = "notification_intents"
+
+    id = Column(String, primary_key=True)  # UUID string
+    user_id = Column(String, index=True, nullable=False)
+
+    intent_type = Column(String(50), nullable=False)
+    priority = Column(String(20), nullable=False)
+
+    silent_allowed = Column(Boolean, nullable=False, default=True)
+
+    reason = Column(Text, nullable=False)
+    source = Column(String(50), nullable=False)
+
+    suppressed = Column(Boolean, nullable=False, default=False)
+
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    handled_at = Column(DateTime, nullable=True)
