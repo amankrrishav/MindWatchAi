@@ -4,9 +4,22 @@ venv/
 # Python cache
 __pycache__/
 *.pyc
+*.pyo
 
 # Environment variables
 .env
+.env.local
+
+# Database
+*.db
+mindwatch.db
+
+# Node
+node_modules/
+
+# Build
+dist/
+build/
 
 # macOS
 .DS_Store
