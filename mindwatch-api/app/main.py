@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings, get_cors_origins_list
 from app.db.session import init_db
 from app.db.seed import seed_if_empty
-from app.api import ingest, predict, questions, notifications
+from app.api import ingest, predict, questions, notifications, auth
 from app.services.monitoring_worker import monitoring_worker
 from app.services.daily_snapshot_task import daily_snapshot_worker
 from app.services.orchestration_worker import orchestration_worker
@@ -46,6 +46,7 @@ async def startup():
     asyncio.create_task(orchestration_worker())
 
 
+app.include_router(auth.router)
 app.include_router(ingest.router, prefix="/ingest")
 app.include_router(predict.router)
 app.include_router(notifications.router)

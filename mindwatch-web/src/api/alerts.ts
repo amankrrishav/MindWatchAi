@@ -1,8 +1,7 @@
 import { api } from "./client";
-import { USER_ID } from "./constants";
 
 export async function fetchUserAlerts() {
-  const res = await api.get(`/predict/alerts/${USER_ID}`);
+  const res = await api.get("/predict/alerts/me");
   return res.data;
 }
 

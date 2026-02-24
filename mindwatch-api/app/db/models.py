@@ -258,3 +258,18 @@ class NotificationIntent(Base):
     suppressed = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     handled_at = Column(DateTime, nullable=True)
+
+
+# ---------------------------------------------------------------------------
+# Users (Auth)
+# ---------------------------------------------------------------------------
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(String(36), primary_key=True, default=uuid_str)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+

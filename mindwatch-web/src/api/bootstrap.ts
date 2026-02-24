@@ -1,5 +1,4 @@
 import { api } from "./client";
-import { USER_ID } from "./constants";
 
 /**
  * Bootstrap: submit a minimal PHQ-9 to create initial PHQ9Analysis.
@@ -12,7 +11,7 @@ export async function bootstrapFirstAssessment() {
   }
   await api.post("/predict/phq9/analyze", {
     answers,
-    user_id: USER_ID,
+    user_id: "me",
     session_id: `bootstrap-${Date.now()}`,
   });
 }
