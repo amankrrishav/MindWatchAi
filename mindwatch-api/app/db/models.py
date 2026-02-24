@@ -273,3 +273,43 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
+
+# ---------------------------------------------------------------------------
+# Wellness Check-Ins (7-signal daily check-in)
+# ---------------------------------------------------------------------------
+
+
+class WellnessCheckIn(Base):
+    __tablename__ = "wellness_checkins"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(String(64), index=True, nullable=False)
+    mood = Column(Integer, nullable=False)           # 1-5
+    sleep_quality = Column(Integer, nullable=False)  # 1-5
+    energy = Column(Integer, nullable=False)         # 1-5
+    anxiety = Column(Integer, nullable=False)        # 1-5  (higher = worse)
+    social = Column(Integer, nullable=False)         # 1-5
+    focus = Column(Integer, nullable=False)          # 1-5
+    appetite = Column(Integer, nullable=False)       # 1-5
+    wellness_score = Column(Float, nullable=False)   # 0-100 computed
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (Index("idx_checkins_user_time", "user_id", "created_at"),)
+
+
+# ---------------------------------------------------------------------------
+# User Consent (Privacy settings)
+# ---------------------------------------------------------------------------
+
+
+class UserConsent(Base):
+    __tablename__ = "user_consent"
+
+    user_id = Column(String(64), primary_key=True)
+    data_collection = Column(Boolean, default=False, nullable=False)
+    research_use = Column(Boolean, default=False, nullable=False)
+    ai_analysis = Column(Boolean, default=False, nullable=False)
+    notifications_ok = Column(Boolean, default=True, nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+

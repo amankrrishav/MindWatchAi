@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.db.session import SessionLocal
-from app.db.models import PHQ9Analysis
+from app.db.models import PHQ9Analysis, WellnessCheckIn
 from app.services.risk_engine import compute_risk_v2
+from app.services.risk_engine_v3 import compute_risk_v3
 from app.services.alert_service import evaluate_and_create_alert
 from app.services.risk_snapshot_service import create_risk_snapshot
 from app.services.monitoring_state_service import get_or_create_state, update_state
@@ -39,14 +40,25 @@ async def monitoring_worker() -> None:
         db: Session = SessionLocal()
         update_heartbeat()
         try:
-            user_ids = [r[0] for r in db.query(PHQ9Analysis.user_id).distinct().all()]
+            # Gather all user IDs from both PHQ-9 and wellness check-ins
+            phq9_users = {r[0] for r in db.query(PHQ9Analysis.user_id).distinct().all()}
+            checkin_users = {r[0] for r in db.query(WellnessCheckIn.user_id).distinct().all()}
+            user_ids = list(phq9_users | checkin_users)
+
             for user_id in user_ids:
                 if shutdown_event.is_set():
                     break
                 try:
-                    risk = compute_risk_v2(user_id, db)
-                    level = risk["risk_level"]
-                    confidence = risk["confidence"]
+                    # Use v3 when check-in data exists, fall back to v2
+                    if user_id in checkin_users:
+                        v3 = compute_risk_v3(user_id, db)
+                        level = v3["risk_level"]
+                        confidence = v3["confidence"]
+                    else:
+                        risk = compute_risk_v2(user_id, db)
+                        level = risk["risk_level"]
+                        confidence = risk["confidence"]
+
                     state = get_or_create_state(user_id, db)
 
                     if state.last_risk is None:

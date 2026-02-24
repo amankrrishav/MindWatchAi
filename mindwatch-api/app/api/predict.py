@@ -21,6 +21,8 @@ from app.schemas.alert import RiskAlertResponse
 from app.schemas.risk_snapshot import RiskSnapshotResponse
 from app.schemas.risk_trend import RiskTrendEventResponse
 from app.schemas.explanation import ExplanationResponse
+from app.auth.context import get_current_user_id
+from app.services.risk_engine_v3 import compute_risk_v3
 
 router = APIRouter(prefix="/predict", tags=["predict"])
 
@@ -163,6 +165,81 @@ def get_risk_snapshots(user_id: str, db: Session = Depends(get_db)):
 
 @router.get("/trends/{user_id}", response_model=list[RiskTrendEventResponse])
 def get_risk_trends(user_id: str, db: Session = Depends(get_db)):
+    return (
+        db.query(RiskTrendEvent)
+        .filter(RiskTrendEvent.user_id == user_id)
+        .order_by(RiskTrendEvent.created_at.desc())
+        .all()
+    )
+
+
+# ---------------------------------------------------------------------------
+# /me endpoints – JWT-authenticated, no user_id in URL
+# ---------------------------------------------------------------------------
+
+
+@router.get("/risk/me")
+def get_risk_me(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """v3 wellness risk for the authenticated user."""
+    from app.services.risk_engine_v3 import compute_risk_v3
+    result = compute_risk_v3(user_id, db)
+    return {"user_id": user_id, **result}
+
+
+@router.get("/risk/snapshots/me", response_model=list[RiskSnapshotResponse])
+def get_risk_snapshots_me(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    snapshots = (
+        db.query(RiskSnapshot)
+        .filter(RiskSnapshot.user_id == user_id)
+        .order_by(RiskSnapshot.created_at.desc())
+        .all()
+    )
+    result = []
+    for s in snapshots:
+        raw = s.reasons or []
+        normalized = []
+        for r in raw:
+            if isinstance(r, dict):
+                normalized.append(f"{r.get('factor', '')}: {r.get('impact', '')}")
+            else:
+                normalized.append(str(r))
+        result.append({
+            "id": s.id,
+            "user_id": s.user_id,
+            "risk_level": s.risk_level,
+            "confidence": s.confidence,
+            "reasons": normalized,
+            "engine_version": s.engine_version or "v2",
+            "created_at": s.created_at,
+        })
+    return result
+
+
+@router.get("/alerts/me", response_model=list[RiskAlertResponse])
+def get_alerts_me(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    alerts = (
+        db.query(RiskAlert)
+        .filter(RiskAlert.user_id == user_id, RiskAlert.acknowledged.is_(False))
+        .order_by(RiskAlert.created_at.desc())
+        .all()
+    )
+    return [_alert_to_response(a) for a in alerts]
+
+
+@router.get("/trends/me", response_model=list[RiskTrendEventResponse])
+def get_trends_me(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     return (
         db.query(RiskTrendEvent)
         .filter(RiskTrendEvent.user_id == user_id)
