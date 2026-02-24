@@ -43,7 +43,7 @@ const SIGNAL_EMOJIS: Record<string, string> = {
 function RadarChart({ signals }: { signals: Record<string, number> }) {
   const keys = Object.keys(signals);
   const n = keys.length;
-  const cx = 120, cy = 120, r = 85;
+  const cx = 140, cy = 140, r = 90;
 
   const angle = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
 
@@ -70,7 +70,7 @@ function RadarChart({ signals }: { signals: Record<string, number> }) {
   );
 
   return (
-    <svg width={240} height={240} className="mx-auto">
+    <svg width={280} height={280} className="mx-auto">
       {/* Grid rings */}
       {rings.map((pts, idx) => (
         <polygon
@@ -96,9 +96,7 @@ function RadarChart({ signals }: { signals: Record<string, number> }) {
       ))}
       {/* Labels */}
       {keys.map((k, i) => {
-        const op = outerPoint(i);
-        const angle_deg = (angle(i) * 180) / Math.PI;
-        const labelDist = r + 22;
+        const labelDist = r + 28;
         const la = angle(i);
         const lx = cx + labelDist * Math.cos(la);
         const ly = cy + labelDist * Math.sin(la);
@@ -109,7 +107,7 @@ function RadarChart({ signals }: { signals: Record<string, number> }) {
             y={ly}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize={10}
+            fontSize={16}
             fill="#6b7280"
           >
             {SIGNAL_EMOJIS[k]}
