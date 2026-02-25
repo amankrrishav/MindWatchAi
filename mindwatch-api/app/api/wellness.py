@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, validator
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.db.models import WellnessCheckIn, UserConsent
+from app.db.models import WellnessCheckIn, UserConsent, BehaviorEvent
 from app.auth.context import get_current_user_id
 from app.services.risk_engine_v3 import compute_wellness_score, compute_risk_v3
 
@@ -102,6 +102,17 @@ def submit_checkin(
     db.add(checkin)
     db.commit()
     db.refresh(checkin)
+
+    # Wire into behavior pipeline so risk_engine_v3 has feature data
+    sentiment = (payload.mood - 3) / 2  # maps 1-5 → -1.0 to +1.0
+    event = BehaviorEvent(
+        user_id=user_id,
+        timestamp=datetime.utcnow(),
+        features={"sentiment": sentiment},
+    )
+    db.add(event)
+    db.commit()
+
     return checkin
 
 
