@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
-from app.db.models import PHQ9Analysis, RiskSnapshot, OrchestrationDecision
+from app.db.models import PHQ9Analysis, RiskSnapshot, OrchestrationDecision, WellnessCheckIn
 from app.orchestration.confidence import confidence_score
 from app.orchestration.uncertainty import detect_uncertainty
 from app.orchestration.decision import decide_ask_or_not
@@ -40,9 +40,10 @@ def _compute_orchestration_inputs(user_id: str, db: Session):
         .all()
     )
     if not snapshots:
-        # New users with PHQ9 but no snapshots: create "ask" to bootstrap
+        # New users with PHQ9 or Wellness but no snapshots: create "ask" to bootstrap
         has_phq9 = db.query(PHQ9Analysis).filter(PHQ9Analysis.user_id == user_id).first()
-        if has_phq9:
+        has_wellness = db.query(WellnessCheckIn).filter(WellnessCheckIn.user_id == user_id).first()
+        if has_phq9 or has_wellness:
             return {
                 "recent_levels": [],
                 "last_snapshot_time": None,
@@ -106,10 +107,10 @@ async def orchestration_worker() -> None:
     while not shutdown_event.is_set():
         db: Session = SessionLocal()
         try:
-            user_ids = [
-                r[0]
-                for r in db.query(PHQ9Analysis.user_id).distinct().all()
-            ]
+            phq9_uids = [r[0] for r in db.query(PHQ9Analysis.user_id).distinct().all()]
+            wellness_uids = [r[0] for r in db.query(WellnessCheckIn.user_id).distinct().all()]
+            user_ids = list(set(phq9_uids + wellness_uids))
+            
             for uid in user_ids:
                 if shutdown_event.is_set():
                     break

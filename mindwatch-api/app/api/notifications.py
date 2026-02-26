@@ -62,3 +62,23 @@ def mark_notification_handled(
     intent.handled_at = datetime.utcnow()
     db.commit()
     return {"status": "handled"}
+
+
+@router.patch("/handled-all")
+def mark_all_notifications_handled(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Mark all unread notifications intents as handled."""
+    intents = (
+        db.query(NotificationIntent)
+        .filter(
+            NotificationIntent.user_id == user_id,
+            NotificationIntent.handled_at.is_(None)
+        )
+        .all()
+    )
+    for intent in intents:
+        intent.handled_at = datetime.utcnow()
+    db.commit()
+    return {"status": "handled", "count": len(intents)}

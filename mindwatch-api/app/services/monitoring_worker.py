@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.db.session import SessionLocal
-from app.db.models import PHQ9Analysis, WellnessCheckIn
+from app.db.models import PHQ9Analysis, WellnessCheckIn, NotificationIntent
 from app.services.risk_engine import compute_risk_v2
 from app.services.risk_engine_v3 import compute_risk_v3
 from app.services.alert_service import evaluate_and_create_alert
@@ -14,14 +14,13 @@ from app.services.monitoring_state_service import get_or_create_state, update_st
 from app.services.risk_trend_service import detect_risk_trend
 from app.services.risk_trend_event_service import store_trend_event
 from app.services.monitoring_heartbeat import update_heartbeat
+from app.notifications.factory import create_notification_intent
+from datetime import datetime, timedelta
 
 
 shutdown_event = asyncio.Event()
 CHECK_INTERVAL = 300
 FAILURE_BACKOFF = 15
-ESCALATION_THRESHOLD = 2
-COOLDOWN_THRESHOLD = 3
-TREND_STREAK_THRESHOLD = 2
 
 
 def _handle_shutdown(sig, frame):
@@ -80,7 +79,7 @@ async def monitoring_worker() -> None:
                         state.trend_streak = (state.trend_streak or 0) + 1 if state.last_trend == current_trend else 1
                         if (
                             state.last_risk != level
-                            and (state.trend_streak or 0) >= TREND_STREAK_THRESHOLD
+                            and (state.trend_streak or 0) >= get_settings().trend_streak_threshold
                         ):
                             store_trend_event(
                                 user_id=user_id,
@@ -97,13 +96,25 @@ async def monitoring_worker() -> None:
                     if level == "high":
                         state.high_streak = (state.high_streak or 0) + 1
                         state.cooldown_streak = 0
-                        if (state.high_streak or 0) == ESCALATION_THRESHOLD:
+                        if (state.high_streak or 0) >= get_settings().monitoring_escalation_threshold:
                             create_risk_snapshot(user_id, db)
                             evaluate_and_create_alert(user_id, db)
                     else:
+                        if state.last_risk == "high" and level in ["medium", "low"]:
+                            create_notification_intent(
+                                db=db,
+                                user_id=user_id,
+                                intent_type="risk_improving",
+                                priority="low",
+                                reason="Risk level has improved to medium/low.",
+                                source="monitoring_worker",
+                                silent_allowed=True,
+                            )
+                            db.commit()
+                            
                         state.cooldown_streak = (state.cooldown_streak or 0) + 1
                         state.high_streak = 0
-                        if (state.cooldown_streak or 0) == COOLDOWN_THRESHOLD:
+                        if (state.cooldown_streak or 0) >= get_settings().monitoring_cooldown_threshold:
                             create_risk_snapshot(user_id, db)
 
                     update_state(
@@ -116,6 +127,20 @@ async def monitoring_worker() -> None:
                         last_trend=state.last_trend,
                         db=db,
                     )
+                    
+                    # check_in_reminder missing 48h
+                    if user_id in checkin_users:
+                        last_checkin = db.query(WellnessCheckIn).filter(WellnessCheckIn.user_id == user_id).order_by(WellnessCheckIn.created_at.desc()).first()
+                        if last_checkin and last_checkin.created_at < datetime.utcnow() - timedelta(hours=48):
+                            create_notification_intent(db=db, user_id=user_id, intent_type="check_in_reminder", priority="medium", reason="We haven't heard from you in 48h.", source="monitoring_worker")
+                            
+                    # weekly digest every Sunday
+                    if datetime.utcnow().weekday() == 6:
+                        has_digest = db.query(NotificationIntent.__class__).filter(NotificationIntent.user_id == user_id, NotificationIntent.intent_type == "weekly_digest", NotificationIntent.created_at >= datetime.utcnow() - timedelta(hours=24)).first()
+                        if not has_digest:
+                            create_notification_intent(db=db, user_id=user_id, intent_type="weekly_digest", priority="low", reason="Your weekly summary is ready.", source="monitoring_worker", silent_allowed=True)
+                            db.commit()
+                            
                 except (SQLAlchemyError, Exception):
                     db.rollback()
                     continue

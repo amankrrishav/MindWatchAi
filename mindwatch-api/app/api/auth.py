@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 
 from app.db.session import get_db
-from app.db.models import User
+from app.db.models import User, WellnessCheckIn, PHQ9Analysis, RiskAlert
 from app.auth.jwt import create_access_token
 from app.auth.context import get_current_user_id
 
@@ -93,4 +93,57 @@ def me(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return UserOut(id=user.id, email=user.email, created_at=user.created_at)
+
+
+@router.get("/export")
+def export_user_data(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Export all user data to comply with data portability requirements."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    checkins = db.query(WellnessCheckIn).filter(WellnessCheckIn.user_id == user_id).all()
+    phq9 = db.query(PHQ9Analysis).filter(PHQ9Analysis.user_id == user_id).all()
+    alerts = db.query(RiskAlert).filter(RiskAlert.user_id == user_id).all()
+
+    return {
+        "user": {
+            "email": user.email,
+            "created_at": user.created_at,
+        },
+        "checkins": [
+            {
+                "id": c.id,
+                "mood": c.mood,
+                "sleep_quality": c.sleep_quality,
+                "energy": c.energy,
+                "anxiety": c.anxiety,
+                "social": c.social,
+                "focus": c.focus,
+                "appetite": c.appetite,
+                "wellness_score": c.wellness_score,
+                "notes": c.notes,
+                "created_at": c.created_at
+            } for c in checkins
+        ],
+        "phq9": [
+            {
+                "id": p.id,
+                "severity": p.severity,
+                "raw_score": p.score,
+                "created_at": p.created_at
+            } for p in phq9
+        ],
+        "alerts": [
+            {
+                "id": a.id,
+                "risk_level": a.risk_level,
+                "reasons": a.reasons,
+                "created_at": a.created_at
+            } for a in alerts
+        ]
+    }
 

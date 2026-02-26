@@ -3,15 +3,14 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.db.models import RiskAlert
-from app.services.risk_engine import compute_risk_v2
+from app.services.risk_engine_v3 import compute_risk_v3
 from app.notifications.factory import create_notification_intent
-
-DEDUP_WINDOW_HOURS = 24
+from app.config import get_settings
 
 
 def evaluate_and_create_alert(user_id: str, db: Session) -> Optional[RiskAlert]:
     """Create HIGH risk alert only if conditions are met."""
-    risk = compute_risk_v2(user_id, db)
+    risk = compute_risk_v3(user_id, db)
     if risk["risk_level"] != "high":
         return None
 
@@ -28,7 +27,7 @@ def evaluate_and_create_alert(user_id: str, db: Session) -> Optional[RiskAlert]:
         return None
 
     now = datetime.utcnow()
-    window_start = now - timedelta(hours=DEDUP_WINDOW_HOURS)
+    window_start = now - timedelta(hours=get_settings().alert_dedup_window_hours)
     recent = (
         db.query(RiskAlert)
         .filter(
@@ -45,7 +44,7 @@ def evaluate_and_create_alert(user_id: str, db: Session) -> Optional[RiskAlert]:
         user_id=user_id,
         risk_level="high",
         confidence=risk["confidence"],
-        reasons=", ".join(risk["reasons"]),
+        reasons=risk["reasons"],
         acknowledged=False,
     )
     db.add(alert)

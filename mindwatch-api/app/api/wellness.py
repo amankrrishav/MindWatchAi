@@ -7,9 +7,10 @@ from pydantic import BaseModel, Field, validator
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.db.models import WellnessCheckIn, UserConsent, BehaviorEvent
+from app.db.models import WellnessCheckIn, UserConsent, BehaviorEvent, NotificationIntent
 from app.auth.context import get_current_user_id
 from app.services.risk_engine_v3 import compute_wellness_score, compute_risk_v3
+from app.notifications.factory import create_notification_intent
 
 router = APIRouter(prefix="/wellness", tags=["wellness"])
 
@@ -112,6 +113,39 @@ def submit_checkin(
     )
     db.add(event)
     db.commit()
+
+    # Trigger score_high notification
+    if score >= 80:
+        # Check if they already got one recently
+        existing_high = db.query(NotificationIntent).filter(
+            NotificationIntent.user_id == user_id,
+            NotificationIntent.intent_type == "score_high"
+        ).first()
+        if not existing_high:
+            create_notification_intent(
+                db=db,
+                user_id=user_id,
+                intent_type="score_high",
+                priority="low",
+                reason="Wellness score reached 80+!",
+                source="wellness_api",
+                silent_allowed=True,
+            )
+            db.commit()
+
+    # Trigger streak milestones
+    streak = db.query(WellnessCheckIn).filter(WellnessCheckIn.user_id == user_id).count()
+    if streak in [7, 30, 100]:
+        create_notification_intent(
+            db=db,
+            user_id=user_id,
+            intent_type="streak_milestone",
+            priority="low",
+            reason=f"Reached a {streak}-day check-in streak!",
+            source="wellness_api",
+            silent_allowed=False,
+        )
+        db.commit()
 
     return checkin
 

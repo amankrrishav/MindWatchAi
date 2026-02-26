@@ -5,11 +5,11 @@ interface Props {
 }
 
 function getColor(score: number): string {
-  if (score >= 80) return "#10b981"; // emerald
-  if (score >= 60) return "#22c55e"; // green
-  if (score >= 40) return "#f59e0b"; // amber
-  if (score >= 20) return "#f97316"; // orange
-  return "#ef4444"; // red
+  if (score >= 80) return "#10b981"; // emerald-500
+  if (score >= 60) return "#22c55e"; // green-500
+  if (score >= 40) return "#eab308"; // yellow-500
+  if (score >= 20) return "#f97316"; // orange-500
+  return "#ef4444"; // red-500
 }
 
 function getLabel(score: number): string {
@@ -19,16 +19,6 @@ function getLabel(score: number): string {
   if (score >= 20) return "Struggling";
   return "Crisis";
 }
-
-const SIGNAL_LABELS: Record<string, string> = {
-  mood: "Mood",
-  sleep_quality: "Sleep",
-  energy: "Energy",
-  anxiety: "Anxiety",
-  social: "Connection",
-  focus: "Focus",
-  appetite: "Appetite",
-};
 
 const SIGNAL_EMOJIS: Record<string, string> = {
   mood: "😊",
@@ -44,6 +34,7 @@ function RadarChart({ signals }: { signals: Record<string, number> }) {
   const keys = Object.keys(signals);
   const n = keys.length;
   const cx = 140, cy = 140, r = 90;
+  const size = 280;
 
   const angle = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
 
@@ -70,51 +61,57 @@ function RadarChart({ signals }: { signals: Record<string, number> }) {
   );
 
   return (
-    <svg width={280} height={280} className="mx-auto">
-      {/* Grid rings */}
-      {rings.map((pts, idx) => (
-        <polygon
-          key={idx}
-          points={pts}
-          fill="none"
-          stroke="#e5e7eb"
-          strokeWidth={1}
-        />
-      ))}
-      {/* Spokes */}
-      {keys.map((_, i) => {
-        const op = outerPoint(i);
-        return (
-          <line key={i} x1={cx} y1={cy} x2={op.x} y2={op.y} stroke="#e5e7eb" strokeWidth={1} />
-        );
-      })}
-      {/* Data area */}
-      <polygon points={polyPoints} fill="#6366f1" fillOpacity={0.25} stroke="#6366f1" strokeWidth={2} />
-      {/* Data points */}
-      {dataPoints.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r={4} fill="#6366f1" />
-      ))}
-      {/* Labels */}
-      {keys.map((k, i) => {
-        const labelDist = r + 28;
-        const la = angle(i);
-        const lx = cx + labelDist * Math.cos(la);
-        const ly = cy + labelDist * Math.sin(la);
-        return (
-          <text
-            key={k}
-            x={lx}
-            y={ly}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={16}
-            fill="#6b7280"
-          >
-            {SIGNAL_EMOJIS[k]}
-          </text>
-        );
-      })}
-    </svg>
+    <div className="absolute inset-0 flex items-center justify-center">
+      <svg width={size} height={size} viewBox="0 0 220 220">
+        {/* Grid rings */}
+        {rings.map((pts, idx) => (
+          <polygon
+            key={idx}
+            points={pts}
+            fill="none"
+            stroke="#27272a"
+            strokeWidth={1}
+          />
+        ))}
+
+        {/* Spokes */}
+        {keys.map((_, i) => {
+          const op = outerPoint(i);
+          return (
+            <line key={i} x1={cx} y1={cy} x2={op.x} y2={op.y} stroke="#27272a" strokeWidth={1} />
+          );
+        })}
+
+        {/* Data area */}
+        <polygon points={polyPoints} fill="#10b981" fillOpacity={0.15} stroke="#10b981" strokeWidth={2} className="drop-shadow-glow-green" />
+
+        {/* Data points */}
+        {dataPoints.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r={4} fill="#10b981" className="drop-shadow-glow-green" />
+        ))}
+
+        {/* Labels */}
+        {keys.map((k, i) => {
+          const labelDist = r + 28;
+          const la = angle(i);
+          const lx = cx + labelDist * Math.cos(la);
+          const ly = cy + labelDist * Math.sin(la);
+          return (
+            <text
+              key={k}
+              x={lx}
+              y={ly}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize={16}
+              fill="#9ca3af"
+            >
+              {SIGNAL_EMOJIS[k]}
+            </text>
+          );
+        })}
+      </svg>
+    </div>
   );
 }
 
@@ -126,8 +123,6 @@ export default function WellnessMeter({ data }: Props) {
   // Arc gauge math (semi-circle)
   const R = 80;
   const cx = 110, cy = 110;
-  const startAngle = Math.PI; // left
-  const endAngle = 0; // right (semi-circle from left to right via top)
   const fraction = score / 100;
 
   // Arc from 180° to 0° going counterclockwise (over top)
@@ -135,12 +130,18 @@ export default function WellnessMeter({ data }: Props) {
   const endX = cx + R * Math.cos(arcAngle);
   const endY = cy - R * Math.sin(arcAngle);
 
-  const bgEndX = cx - R;
-  const bgEndY = cy;
-
   return (
-    <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-      <h2 className="text-base font-semibold text-gray-800 mb-4">Wellness Score</h2>
+    <div className="w-full max-w-2xl bg-pro-panel border border-pro-border shadow-panel rounded-2xl p-8 relative overflow-hidden">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+          <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h2 className="text-lg font-semibold text-white tracking-tight">
+          Current Readiness
+        </h2>
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-6 items-center">
         {/* Gauge */}
@@ -150,7 +151,7 @@ export default function WellnessMeter({ data }: Props) {
             <path
               d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`}
               fill="none"
-              stroke="#e5e7eb"
+              stroke="#1f2937"
               strokeWidth={18}
               strokeLinecap="round"
             />
@@ -162,13 +163,14 @@ export default function WellnessMeter({ data }: Props) {
                 stroke={color}
                 strokeWidth={18}
                 strokeLinecap="round"
+                className="drop-shadow-glow"
               />
             )}
             {/* Score text */}
-            <text x={cx} y={cy - 8} textAnchor="middle" fontSize={32} fontWeight="bold" fill={color}>
+            <text x={cx} y={cy - 8} textAnchor="middle" fontSize={36} fontWeight="700" fill={color} className="drop-shadow-glow font-sans">
               {score.toFixed(0)}
             </text>
-            <text x={cx} y={cy + 14} textAnchor="middle" fontSize={13} fill="#6b7280">
+            <text x={cx} y={cy + 16} textAnchor="middle" fontSize={13} fill="#9ca3af" className="font-medium">
               {label}
             </text>
           </svg>
@@ -178,38 +180,49 @@ export default function WellnessMeter({ data }: Props) {
         {data.signals ? (
           <div className="flex flex-col items-center">
             <RadarChart signals={data.signals} />
-            <div className="grid grid-cols-4 gap-x-4 gap-y-1 mt-1 text-xs text-gray-500">
+            <div className="grid grid-cols-4 gap-x-4 gap-y-2 mt-4 text-sm text-gray-400">
               {Object.entries(data.signals).map(([k, v]) => (
-                <span key={k}>
-                  {SIGNAL_EMOJIS[k]} {SIGNAL_LABELS[k]}: <strong>{v}</strong>
+                <span key={k} className="flex items-center gap-1.5">
+                  <span className="opacity-80">{SIGNAL_EMOJIS[k]}</span>
+                  <strong className="text-gray-200 font-medium">{v}</strong>
                 </span>
               ))}
             </div>
           </div>
         ) : (
-          <div className="text-sm text-gray-400 italic">Complete a check-in to see your signal radar.</div>
+          <div className="text-sm text-gray-500 italic px-8">No telemetry data signal available.</div>
         )}
       </div>
 
       {/* Risk level badge */}
-      <div className="mt-4 flex items-center gap-2">
-        <span
-          className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
-            data.risk_level === "low"
-              ? "bg-green-100 text-green-800"
+      {/* Risk level badge */}
+      <div className="mt-8 flex items-center justify-between border-t border-pro-border pt-6">
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500 font-medium">Risk Assessment</span>
+          <span
+            className={`px-2.5 py-1 text-xs font-semibold rounded-md border ${data.risk_level === "low"
+              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
               : data.risk_level === "medium"
-              ? "bg-amber-100 text-amber-800"
-              : data.risk_level === "high"
-              ? "bg-red-100 text-red-800"
-              : "bg-gray-100 text-gray-600"
-          }`}
-        >
-          {data.risk_level.toUpperCase()} RISK
-        </span>
-        {data.reasons.length > 0 && (
-          <span className="text-xs text-gray-400">
-            {data.reasons.slice(0, 2).map((r) => r.factor).join(" · ")}
+                ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                : data.risk_level === "high"
+                  ? "bg-red-500/10 text-red-500 border-red-500/20"
+                  : "bg-gray-800 text-gray-400 border-gray-700"
+              }`}
+          >
+            {data.risk_level.charAt(0).toUpperCase() + data.risk_level.slice(1)}
           </span>
+        </div>
+        {data.reasons.length > 0 && (
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-gray-500">Primary Drivers:</span>
+            <div className="flex gap-2">
+              {data.reasons.slice(0, 2).map((r, i) => (
+                <span key={i} className="px-2 py-1 bg-pro-bg border border-pro-border rounded text-xs text-gray-300 font-medium">
+                  {r.factor.replace('_', ' ')}
+                </span>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>

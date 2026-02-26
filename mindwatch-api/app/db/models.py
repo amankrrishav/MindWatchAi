@@ -81,7 +81,7 @@ class RiskAlert(Base):
     user_id = Column(String(64), index=True, nullable=False)
     risk_level = Column(String(32), nullable=False)
     confidence = Column(Float, nullable=False)
-    reasons = Column(Text, nullable=False)
+    reasons = Column(JSON, nullable=False)
     acknowledged = Column(Boolean, default=False)
     resolved_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())

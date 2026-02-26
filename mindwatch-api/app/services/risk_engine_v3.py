@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import WellnessCheckIn, PHQ9Analysis, BehaviorFeature
 from app.services.behavior_feature_service import extract_behavior_features
+from app.config import get_settings
 
 
 def compute_wellness_score(
@@ -38,8 +39,11 @@ def compute_wellness_score(
     # Negative signal (high = bad) → invert
     negative_inverted = (6 - anxiety)
 
-    # Blend: 70% positive signals, 30% inverted anxiety
-    raw = (positive * 0.70 + negative_inverted * 0.30)
+    # Blend: Based on config weights
+    settings = get_settings()
+    pos_weight = settings.signal_weights.get("positive", 0.70)
+    neg_weight = settings.signal_weights.get("negative", 0.30)
+    raw = (positive * pos_weight + negative_inverted * neg_weight)
     # Map 1-5 scale → 0-100
     return round((raw - 1) / 4 * 100, 1)
 
@@ -72,13 +76,7 @@ def compute_risk_v3(user_id: str, db: Session) -> dict:
         .first()
     )
 
-    phq9_floor_map = {
-        "minimal": None,          # no floor
-        "mild": 40.0,
-        "moderate": 25.0,
-        "moderately_severe": 15.0,
-        "severe": 5.0,
-    }
+    phq9_floor_map = get_settings().phq9_floor_map
 
     if phq9:
         floor = phq9_floor_map.get(phq9.severity)
@@ -127,10 +125,17 @@ def compute_risk_v3(user_id: str, db: Session) -> dict:
     final_score = round(max(0, min(100, base_score)), 1)
     risk_level = _score_to_risk_level(final_score)
 
+    # Confidence calculation: how much data we had
+    confidence = 0.5 # default for checkin
+    if phq9:
+        confidence += 0.3
+    if behavior:
+        confidence += 0.2
+        
     return {
         "wellness_score": final_score,
         "risk_level": risk_level,
-        "confidence": round(1 - (final_score / 100) if risk_level != "unknown" else 0, 2),
+        "confidence": round(confidence, 2),
         "reasons": reasons,
         "signals": {
             "mood": checkin.mood,
@@ -179,8 +184,6 @@ def _from_phq9_only(user_id: str, db: Session) -> dict:
 
 
 def _score_to_risk_level(score: float) -> str:
-    if score >= 80:
-        return "low"
     if score >= 60:
         return "low"
     if score >= 40:

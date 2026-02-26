@@ -4,23 +4,27 @@ interface Risk {
 }
 
 const styles: Record<string, { border: string; bg: string; bar: string; text: string; pulse: string }> = {
-  high: { border: "border-red-500", bg: "bg-red-50", bar: "bg-red-500", text: "text-red-700", pulse: "animate-pulse" },
-  medium: { border: "border-yellow-400", bg: "bg-yellow-50", bar: "bg-yellow-400", text: "text-yellow-700", pulse: "" },
-  low: { border: "border-green-400", bg: "bg-green-50", bar: "bg-green-400", text: "text-green-700", pulse: "" },
+  high: { border: "border-red-500/20", bg: "bg-red-500/5", bar: "bg-red-500", text: "text-red-400", pulse: "animate-pulse" },
+  medium: { border: "border-yellow-500/20", bg: "bg-yellow-500/5", bar: "bg-yellow-500", text: "text-yellow-400", pulse: "" },
+  low: { border: "border-emerald-500/20", bg: "bg-emerald-500/5", bar: "bg-emerald-500", text: "text-emerald-400", pulse: "" },
 };
 
 export default function RiskOverview({ risk }: { risk: Risk }) {
   const level = risk.risk_level.toLowerCase();
   const s = styles[level] ?? styles.low;
   return (
-    <div className={`w-full max-w-3xl rounded-lg shadow-md border ${s.border} ${s.bg} flex overflow-hidden`}>
-      <div className={`w-2 ${s.bar} ${s.pulse}`} />
+    <div className={`w-full max-w-3xl rounded-xl shadow-panel border ${s.border} ${s.bg} flex overflow-hidden font-sans`}>
+      <div className={`w-1.5 ${s.bar} ${s.pulse}`} />
       <div className="flex-1 p-6 flex justify-between items-center">
         <div>
-          <div className={`text-xl font-semibold ${s.text}`}>{risk.risk_level} Risk</div>
-          <div className="text-sm text-gray-600 mt-1">Current assessed mental health risk level</div>
+          <div className={`text-xl font-semibold tracking-tight ${s.text} capitalize flex items-center gap-2`}>
+            {risk.risk_level} Risk
+          </div>
+          <div className="text-sm text-gray-400 mt-1">Current assessed mental health risk level</div>
         </div>
-        <div className="text-sm text-gray-700">Confidence: {(risk.confidence * 100).toFixed(0)}%</div>
+        <div className="text-sm font-medium text-gray-500 bg-gray-900 border border-gray-800 rounded-md px-3 py-1.5 shadow-sm">
+          Confidence: {(risk.confidence * 100).toFixed(0)}%
+        </div>
       </div>
     </div>
   );

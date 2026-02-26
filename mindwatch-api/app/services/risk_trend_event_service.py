@@ -3,8 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.db.models import RiskTrendEvent
-
-TREND_DEDUP_HOURS = 6
+from app.config import get_settings
 
 
 def store_trend_event(
@@ -15,7 +14,7 @@ def store_trend_event(
     db: Session,
 ) -> Optional[RiskTrendEvent]:
     """Store trend event with deduplication."""
-    since = datetime.utcnow() - timedelta(hours=TREND_DEDUP_HOURS)
+    since = datetime.utcnow() - timedelta(hours=get_settings().trend_dedup_hours)
     existing = (
         db.query(RiskTrendEvent)
         .filter(

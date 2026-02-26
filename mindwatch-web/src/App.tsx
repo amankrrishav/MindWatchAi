@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { fetchRiskSnapshots } from "./api/riskSnapshots";
 import { fetchUserAlerts } from "./api/alerts";
 import { fetchUserTrends } from "./api/trends";
-import { fetchNextQuestion, submitAnswer, skipQuestion } from "./api/questions";
 import { fetchUnreadNotifications } from "./api/notifications";
 import { fetchWellnessScore, fetchCheckInHistory } from "./api/wellness";
 import type { WellnessScore, CheckInRecord } from "./api/wellness";
@@ -10,6 +9,7 @@ import { useAuth } from "./AuthContext";
 
 import NotificationBell from "./components/NotificationBell";
 import NotificationBanner from "./components/NotificationBanner";
+import MilestoneToast from "./components/MilestoneToast";
 import AuthGate from "./components/AuthGate";
 import WellnessCheckInForm from "./components/WellnessCheckInForm";
 import WellnessMeter from "./components/WellnessMeter";
@@ -46,33 +46,35 @@ function AccountMenu() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-transparent hover:border-pro-border hover:bg-pro-panel transition-all"
       >
-        <span className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">
-          {initials}
-        </span>
-        <span className="text-sm text-gray-600 hidden sm:block max-w-[140px] truncate">{user.email}</span>
-        <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-8 h-8 rounded-full bg-pro-panel border border-pro-border flex items-center justify-center overflow-hidden">
+          <span className="text-sm font-medium text-pro-accent">
+            {initials}
+          </span>
+        </div>
+        <span className="text-sm text-gray-300 hidden sm:block max-w-[140px] truncate">{user.email}</span>
+        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
       {open && (
-        <div className="absolute right-0 mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-0.5">Signed in as</p>
-            <p className="text-sm font-semibold text-gray-900 truncate">{user.email}</p>
-            <p className="text-xs text-gray-400 mt-0.5">Member since {joined}</p>
+        <div className="absolute right-0 mt-2 w-64 bg-pro-panel border border-pro-border rounded-xl shadow-panel z-50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-pro-border bg-pro-bg/50">
+            <p className="text-xs text-gray-500 font-medium mb-0.5">Signed in as</p>
+            <p className="text-sm font-semibold text-gray-200 truncate">{user.email}</p>
+            <p className="text-xs text-gray-400 mt-1">Member since {joined}</p>
           </div>
-          <div className="py-1">
+          <div className="py-2">
             <div className="px-4 py-2">
-              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Account ID</p>
-              <p className="text-xs font-mono text-gray-600 bg-gray-100 rounded px-2 py-1 break-all">{user.id}</p>
+              <p className="text-xs text-gray-500 font-medium mb-1">Account ID</p>
+              <p className="text-xs font-mono text-gray-400 bg-pro-bg border border-pro-border rounded-md px-2 py-1 break-all">{user.id}</p>
             </div>
           </div>
-          <div className="border-t border-gray-100 py-1">
+          <div className="border-t border-pro-border p-2">
             <button
               onClick={logout}
-              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -94,7 +96,6 @@ function App() {
   const [checkInHistory, setCheckInHistory] = useState<CheckInRecord[]>([]);
   const [showCheckInForm, setShowCheckInForm] = useState(false);
 
-  const [snapshots, setSnapshots] = useState<unknown[]>([]);
   const [alerts, setAlerts] = useState<unknown[]>([]);
   const [trends, setTrends] = useState<unknown[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -111,12 +112,11 @@ function App() {
   };
 
   const loadMonitoring = async () => {
-    const [snapshotData, alertData, trendData] = await Promise.all([
+    const [, alertData, trendData] = await Promise.all([
       fetchRiskSnapshots(),
       fetchUserAlerts(),
       fetchUserTrends(),
     ]);
-    setSnapshots(snapshotData);
     setAlerts(alertData);
     setTrends(trendData);
   };
@@ -141,7 +141,7 @@ function App() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchUnreadNotifications().then(setNotifications).catch(() => {});
+      fetchUnreadNotifications().then(setNotifications).catch(() => { });
     }, 60_000);
     return () => clearInterval(interval);
   }, []);
@@ -154,45 +154,49 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-600">
-        Loading…
+      <div className="min-h-screen flex items-center justify-center bg-pro-bg text-gray-500 animate-pulse">
+        Initializing workspace...
       </div>
     );
   }
 
   const tabs: { id: Tab; label: string; emoji: string }[] = [
-    { id: "wellness", label: "Wellness",  emoji: "🌱" },
-    { id: "insights", label: "Insights",  emoji: "📊" },
-    { id: "privacy",  label: "Privacy",   emoji: "🔒" },
+    { id: "wellness", label: "Wellness", emoji: "🌱" },
+    { id: "insights", label: "Insights", emoji: "📊" },
+    { id: "privacy", label: "Privacy", emoji: "🔒" },
   ];
 
   return (
     <AuthGate>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-pro-bg font-sans text-gray-200">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🧠</span>
-              <span className="font-semibold text-gray-900">MindWatch</span>
+        <header className="bg-pro-panel/80 backdrop-blur-md border-b border-pro-border sticky top-0 z-10 transition-all">
+          <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pro-accent to-purple-600 flex items-center justify-center shadow-glow">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <span className="font-semibold text-lg tracking-tight text-white">MindWatch</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               <NotificationBell notifications={notifications} onRefresh={loadAll} />
+              <div className="w-px h-6 bg-pro-border mx-2"></div>
               <AccountMenu />
             </div>
           </div>
-          <div className="max-w-3xl mx-auto px-4 flex gap-1 pb-0">
+          <div className="max-w-5xl mx-auto px-6 flex gap-6 pb-0 mt-2">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.id
-                    ? "border-indigo-600 text-indigo-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
+                className={`py-3 text-sm font-medium border-b-2 transition-all duration-200 flex items-center gap-2 ${activeTab === tab.id
+                  ? "border-pro-accent text-white"
+                  : "border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700"
+                  }`}
               >
-                <span className="mr-1.5">{tab.emoji}</span>
+                <span className={activeTab === tab.id ? "opacity-100" : "opacity-60"}>{tab.emoji}</span>
                 {tab.label}
               </button>
             ))}
@@ -201,36 +205,43 @@ function App() {
 
         <NotificationBanner notifications={notifications} onRefresh={loadAll} />
 
-        <main className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+        <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
 
           {/* ── Wellness tab ── */}
           {activeTab === "wellness" && (
-            <>
+            <div className="max-w-2xl mx-auto">
               {wellnessScore && wellnessScore.wellness_score !== null ? (
                 <WellnessMeter data={wellnessScore} />
               ) : (
-                <div className="bg-white border border-gray-200 rounded-2xl p-6 text-center">
-                  <div className="text-4xl mb-3">🌱</div>
-                  <h3 className="font-semibold text-gray-800 mb-1">Track your wellbeing</h3>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Complete your first check-in to see your wellness score, signal radar, and trends.
+                <div className="bg-pro-panel border border-pro-border rounded-2xl shadow-panel p-8 text-center">
+                  <div className="inline-flex w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 items-center justify-center mb-6 shadow-glow">
+                    <svg className="w-8 h-8 text-gray-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Welcome to MindWatch</h3>
+                  <p className="text-gray-400 mb-8 max-w-sm mx-auto leading-relaxed">
+                    Complete your first wellness check-in to calibrate the risk engine and generate your personalized dashboard.
                   </p>
                   <button
                     onClick={() => setShowCheckInForm(true)}
-                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+                    className="px-6 py-3 bg-white text-black hover:bg-gray-100 rounded-lg font-medium shadow-sm transition-all focus:ring-2 focus:ring-white/20"
                   >
-                    Start check-in
+                    Start Check-in
                   </button>
                 </div>
               )}
 
               {wellnessScore && wellnessScore.wellness_score !== null && !showCheckInForm && (
-                <div className="flex justify-end">
+                <div className="flex justify-end mt-6">
                   <button
                     onClick={() => setShowCheckInForm(true)}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+                    className="px-5 py-2.5 bg-pro-accent hover:bg-pro-accentHover text-white rounded-lg font-medium shadow-glow transition-all flex items-center gap-2 text-sm"
                   >
-                    + New check-in
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    New Check-in
                   </button>
                 </div>
               )}
@@ -243,9 +254,11 @@ function App() {
               )}
 
               {checkInHistory.length > 1 && !showCheckInForm && (
-                <WellnessTrend history={checkInHistory} />
+                <div className="mt-8">
+                  <WellnessTrend history={checkInHistory} />
+                </div>
               )}
-            </>
+            </div>
           )}
 
           {/* ── Insights tab ── */}
@@ -255,7 +268,6 @@ function App() {
               wellnessScore={wellnessScore}
               alerts={alerts}
               trends={trends as any[]}
-              snapshots={snapshots}
               onRefresh={loadAll}
             />
           )}
@@ -264,6 +276,8 @@ function App() {
           {activeTab === "privacy" && <PrivacyTab />}
 
         </main>
+
+        <MilestoneToast notifications={notifications} onRefresh={loadAll} />
       </div>
     </AuthGate>
   );

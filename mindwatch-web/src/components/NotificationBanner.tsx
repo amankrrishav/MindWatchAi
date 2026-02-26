@@ -22,18 +22,26 @@ export default function NotificationBanner({ notifications, onRefresh }: Props) 
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto mb-4 p-4 rounded-lg border-l-4 border-red-500 bg-red-50 text-red-900">
+    <div className="w-full max-w-4xl mx-auto mb-4 p-4 border-l-4 border-l-red-500 border-y border-r border-pro-border bg-red-500/10 rounded-r-lg text-white font-sans shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="font-semibold">Important</div>
-          <p className="text-sm mt-1">{top.reason}</p>
-          <p className="text-xs text-red-700 mt-2">{new Date(top.created_at).toLocaleString()}</p>
+          <div className="font-semibold text-red-500 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+            Critical Alert
+          </div>
+          <p className="text-sm mt-2 text-gray-200">
+            {top.reason}
+          </p>
+          <p className="text-xs text-gray-400 mt-3 flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            {new Date(top.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </p>
         </div>
         <button
           onClick={handleDismiss}
-          className="shrink-0 px-3 py-1 text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded"
+          className="shrink-0 px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-md transition-colors shadow-sm"
         >
-          Dismiss
+          Acknowledge
         </button>
       </div>
     </div>

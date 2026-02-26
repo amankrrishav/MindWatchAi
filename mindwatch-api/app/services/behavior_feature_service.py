@@ -12,9 +12,13 @@ def extract_behavior_features(user_id: str, db: Session) -> Optional[BehaviorFea
     """Extract and store behavior features for a user. Returns feature or None if no events."""
     now = datetime.utcnow()
 
+    cutoff = now - timedelta(days=7)
     events = (
         db.query(BehaviorEvent)
-        .filter(BehaviorEvent.user_id == user_id)
+        .filter(
+            BehaviorEvent.user_id == user_id,
+            BehaviorEvent.timestamp >= cutoff
+        )
         .all()
     )
 

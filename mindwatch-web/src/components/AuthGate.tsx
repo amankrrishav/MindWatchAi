@@ -32,49 +32,69 @@ export default function AuthGate({ children }: { children: ReactElement }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-xl font-semibold text-gray-900 mb-1">MindWatch</h1>
-        <p className="text-sm text-gray-600 mb-4">
-          {mode === "login" ? "Sign in to your account" : "Create your MindWatch account"}
-        </p>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] px-4 font-sans">
+      <div className="w-full max-w-md bg-pro-panel border border-pro-border rounded-xl shadow-panel p-8">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-white tracking-tight mb-2 flex items-center justify-center gap-2">
+            <svg className="w-6 h-6 text-pro-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            MindWatch
+          </h1>
+          <p className="text-sm text-gray-400">
+            {mode === "login" ? "Sign in to your account" : "Create your MindWatch account"}
+          </p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
             <input
               type="email"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full bg-pro-bg border border-pro-border text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pro-accent focus:border-transparent transition-all placeholder-gray-600"
+              placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Password</label>
             <input
               type="password"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full bg-pro-bg border border-pro-border text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pro-accent focus:border-transparent transition-all placeholder-gray-600"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
             />
           </div>
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-start gap-2">
+              <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              {error}
+            </div>
+          )}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="w-full py-3 text-sm font-medium text-white bg-pro-accent rounded-lg hover:bg-pro-accentHover disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex justify-center items-center gap-2 mt-2"
           >
-            {loading ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
+            {loading ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Processing...
+              </>
+            ) : mode === "login" ? "Sign in" : "Create account"}
           </button>
         </form>
-        <button
-          className="mt-4 text-xs text-blue-600 hover:underline"
-          onClick={() => setMode(mode === "login" ? "register" : "login")}
-        >
-          {mode === "login" ? "Need an account? Sign up" : "Already have an account? Sign in"}
-        </button>
+
+        <div className="mt-6 text-center">
+          <button
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+            onClick={() => setMode(mode === "login" ? "register" : "login")}
+          >
+            {mode === "login" ? "Need an account? Sign up" : "Already have an account? Sign in"}
+          </button>
+        </div>
       </div>
     </div>
   );

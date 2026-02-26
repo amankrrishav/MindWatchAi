@@ -49,6 +49,21 @@ class Settings(BaseSettings):
     monitoring_interval_seconds: int = Field(default=300, description="Monitoring worker interval")
     orchestration_interval_seconds: int = Field(default=600, description="Orchestration worker interval")
     snapshot_interval_seconds: int = Field(default=86400, description="Daily snapshot interval (24h)")
+    
+    monitoring_escalation_threshold: int = Field(default=2)
+    monitoring_cooldown_threshold: int = Field(default=3)
+    trend_streak_threshold: int = Field(default=2)
+    alert_dedup_window_hours: int = Field(default=24)
+    trend_dedup_hours: int = Field(default=6)
+    
+    signal_weights: dict = Field(default={"positive": 0.70, "negative": 0.30})
+    phq9_floor_map: dict = Field(default={
+        "minimal": None,
+        "mild": 40.0,
+        "moderate": 25.0,
+        "moderately_severe": 15.0,
+        "severe": 5.0,
+    })
 
     # App
     debug: bool = Field(default=False, description="Enable debug mode")

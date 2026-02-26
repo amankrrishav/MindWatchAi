@@ -20,6 +20,9 @@ from app.db.models import (  # noqa: F401 - ensure models are registered
     AnswerPHQMapping,
     QuestionGuardrailState,
     NotificationIntent,
+    User,
+    WellnessCheckIn,
+    UserConsent,
 )
 
 

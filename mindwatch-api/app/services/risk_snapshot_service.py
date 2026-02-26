@@ -2,14 +2,14 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.db.models import RiskSnapshot
-from app.services.risk_engine import compute_risk_v2
+from app.services.risk_engine_v3 import compute_risk_v3
 
 CONFIDENCE_EPSILON = 0.05
 
 
 def create_risk_snapshot(user_id: str, db: Session) -> Optional[RiskSnapshot]:
     """Create snapshot only when meaningful change. Returns snapshot or None if skipped."""
-    risk = compute_risk_v2(user_id, db)
+    risk = compute_risk_v3(user_id, db)
 
     last = (
         db.query(RiskSnapshot)
@@ -29,7 +29,7 @@ def create_risk_snapshot(user_id: str, db: Session) -> Optional[RiskSnapshot]:
         risk_level=risk["risk_level"],
         confidence=risk["confidence"],
         reasons=risk["reasons"],
-        engine_version="v2",
+        engine_version="v3",
     )
     db.add(snapshot)
     db.commit()

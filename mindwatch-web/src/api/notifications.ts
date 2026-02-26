@@ -17,3 +17,7 @@ export async function fetchUnreadNotifications(): Promise<NotificationIntent[]> 
 export async function markNotificationHandled(intentId: string): Promise<void> {
   await api.patch(`/notifications/${intentId}/handled`);
 }
+
+export async function markAllNotificationsHandled(): Promise<void> {
+  await api.patch('/notifications/handled-all');
+}

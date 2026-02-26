@@ -3,7 +3,7 @@ import asyncio
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
-from app.db.models import PHQ9Analysis
+from app.db.models import PHQ9Analysis, WellnessCheckIn
 from app.services.risk_snapshot_service import create_risk_snapshot
 
 
@@ -14,7 +14,9 @@ async def daily_snapshot_worker() -> None:
     while True:
         db: Session = SessionLocal()
         try:
-            user_ids = [r[0] for r in db.query(PHQ9Analysis.user_id).distinct().all()]
+            phq9_uids = [r[0] for r in db.query(PHQ9Analysis.user_id).distinct().all()]
+            wellness_uids = [r[0] for r in db.query(WellnessCheckIn.user_id).distinct().all()]
+            user_ids = list(set(phq9_uids + wellness_uids))
             for uid in user_ids:
                 create_risk_snapshot(uid, db)
         except Exception:
