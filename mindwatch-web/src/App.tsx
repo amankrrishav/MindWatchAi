@@ -16,6 +16,7 @@ import WellnessMeter from "./components/WellnessMeter";
 import WellnessTrend from "./components/WellnessTrend";
 import PrivacyTab from "./components/PrivacyTab";
 import InsightsTab from "./components/InsightsTab";
+import SignalTrendChart from "./components/SignalTrendChart";
 
 type Tab = "wellness" | "insights" | "privacy";
 
@@ -258,8 +259,9 @@ function App() {
               )}
 
               {checkInHistory.length > 1 && !showCheckInForm && (
-                <div className="mt-8">
+                <div className="mt-8 flex flex-col gap-6">
                   <WellnessTrend history={checkInHistory} />
+                  <SignalTrendChart history={checkInHistory} />
                 </div>
               )}
             </div>
