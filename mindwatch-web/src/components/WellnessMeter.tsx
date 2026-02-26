@@ -1,8 +1,10 @@
 import type { WellnessScore } from "../api/wellness";
+import type { ExplanationResponse } from "../api/explanation";
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from "recharts";
 
 interface Props {
   data: WellnessScore;
+  explanation?: ExplanationResponse | null;
 }
 
 const COLORS = {
@@ -51,7 +53,7 @@ function RiskMeter({ score = 0 }: { score: number }) {
 
   return (
     <div className="text-center py-4 relative flex-shrink-0 w-full max-w-[280px]">
-      <svg viewBox="0 0 200 130" width="100%" className="max-w-[260px] mx-auto block drop-shadow-glow overflow-visible">
+      <svg viewBox="0 0 200 130" width="100%" className="max-w-[260px] mx-auto block drop-shadow-[0_0_15px_rgba(255,255,255,0.15)] overflow-visible">
         <defs>
           <linearGradient id="meterGrad" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor={COLORS.red} />
@@ -68,21 +70,21 @@ function RiskMeter({ score = 0 }: { score: number }) {
 
         {/* Needle */}
         <g transform={`rotate(${angle}, 100, 100)`}>
-          <line x1="100" y1="100" x2="100" y2="18" stroke={color} strokeWidth="4" strokeLinecap="round" className="drop-shadow-glow" />
-          <circle cx="100" cy="100" r="8" fill={color} className="drop-shadow-glow" />
+          <line x1="100" y1="100" x2="100" y2="18" stroke={color} strokeWidth="4" strokeLinecap="round" className="drop-shadow-[0_0_8px_currentColor]" />
+          <circle cx="100" cy="100" r="8" fill={color} className="drop-shadow-[0_0_8px_currentColor]" />
           {/* Inner needle circle for style */}
           <circle cx="100" cy="100" r="3" fill="#0d1117" />
         </g>
 
         {/* Centered text display inside semi-circle */}
-        <text x="100" y="85" textAnchor="middle" fill={color} fontSize="28" fontWeight="800" className="tracking-tight drop-shadow-glow">{score.toFixed(0)}</text>
+        <text x="100" y="85" textAnchor="middle" fill={color} fontSize="28" fontWeight="800" className="tracking-tight drop-shadow-[0_0_10px_currentColor]">{score.toFixed(0)}</text>
       </svg>
-      <div className="text-gray-400 font-medium text-sm mt-1">{label}</div>
+      <div className="text-gray-400 font-medium text-sm mt-2 uppercase tracking-widest bg-black/40 backdrop-blur-md px-3 py-1 rounded inline-block">{label}</div>
     </div>
   );
 }
 
-export default function WellnessMeter({ data }: Props) {
+export default function WellnessMeter({ data, explanation }: Props) {
   const score = data.wellness_score ?? 0;
 
   // Prepare recharts radar data by mapping over signals
@@ -95,10 +97,12 @@ export default function WellnessMeter({ data }: Props) {
     : [];
 
   return (
-    <div className="w-full bg-pro-panel border border-pro-border shadow-panel rounded-2xl p-6 md:p-8 relative overflow-hidden transition-all duration-300">
-      <div className="flex items-center gap-3 mb-6 border-b border-pro-border/50 pb-4">
-        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-          <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="w-full glass-panel rounded-2xl p-6 md:p-8 relative overflow-hidden transition-all duration-300">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none z-0 -translate-y-1/2 translate-x-1/4"></div>
+
+      <div className="flex items-center gap-3 mb-6 border-b border-pro-border/50 pb-4 relative z-10">
+        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 shadow-glow-green">
+          <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
@@ -178,6 +182,29 @@ export default function WellnessMeter({ data }: Props) {
           </div>
         )}
       </div>
+
+      {/* AI Explanation Summary */}
+      {explanation && (
+        <div className="mt-6 p-5 rounded-xl glass-card relative z-10 hover:bg-white/10 transition-colors duration-300">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-5 h-5 text-pro-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <h4 className="text-sm font-semibold text-white tracking-wide">AI Context Engine</h4>
+          </div>
+          <p className="text-sm text-gray-300 leading-relaxed max-w-3xl">
+            {explanation.summary}
+          </p>
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {explanation.details.map((detail, idx) => (
+              <div key={idx} className="flex items-start gap-2">
+                <span className="text-pro-accent mt-0.5 shadow-glow rounded-full">•</span>
+                <span className="text-xs text-gray-400">{detail}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

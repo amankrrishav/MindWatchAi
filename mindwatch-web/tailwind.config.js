@@ -8,24 +8,35 @@ export default {
     extend: {
       colors: {
         pro: {
-          bg: '#0A0A0A',
-          panel: '#111111',
-          border: '#222222',
-          accent: '#6366f1',
-          accentHover: '#4f46e5',
+          bg: '#050505',
+          panel: '#0e0e0e',
+          border: '#1f1f22',
+          accent: '#7c3aed',
+          accentHover: '#6d28d9',
         }
       },
       boxShadow: {
-        'glow': '0 0 15px -3px rgba(99, 102, 241, 0.4)',
-        'glow-green': '0 0 15px -3px rgba(34, 197, 94, 0.4)',
-        'glow-red': '0 0 15px -3px rgba(239, 68, 68, 0.4)',
-        'panel': '0 4px 20px -2px rgba(0, 0, 0, 0.5)',
+        'glow': '0 0 20px -5px rgba(124, 58, 237, 0.5)',
+        'glow-green': '0 0 20px -5px rgba(16, 185, 129, 0.5)',
+        'glow-red': '0 0 20px -5px rgba(239, 68, 68, 0.5)',
+        'panel': '0 8px 32px -4px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+      },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'float': 'float 6s ease-in-out infinite',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-5px)' },
+        }
       }
     },
   },
   plugins: [],
-}
+};
+// Force Vite HMR reload

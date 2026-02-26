@@ -5,6 +5,8 @@ import { fetchUserTrends } from "./api/trends";
 import { fetchUnreadNotifications } from "./api/notifications";
 import { fetchWellnessScore, fetchCheckInHistory } from "./api/wellness";
 import type { WellnessScore, CheckInRecord } from "./api/wellness";
+import { fetchExplanation, type ExplanationResponse } from "./api/explanation";
+import { fetchTimeline, type UserTimelineResponse } from "./api/timeline";
 import { useAuth } from "./AuthContext";
 
 import NotificationBell from "./components/NotificationBell";
@@ -17,6 +19,7 @@ import WellnessTrend from "./components/WellnessTrend";
 import PrivacyTab from "./components/PrivacyTab";
 import InsightsTab from "./components/InsightsTab";
 import SignalTrendChart from "./components/SignalTrendChart";
+import DashboardStats from "./components/DashboardStats";
 
 type Tab = "wellness" | "insights" | "privacy";
 
@@ -99,6 +102,9 @@ function App() {
 
   const [alerts, setAlerts] = useState<unknown[]>([]);
   const [trends, setTrends] = useState<unknown[]>([]);
+  const [explanation, setExplanation] = useState<ExplanationResponse | null>(null);
+  const [timeline, setTimeline] = useState<UserTimelineResponse | null>(null);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,12 +132,16 @@ function App() {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [notificationData] = await Promise.all([
+      const [notificationData, explData, timeData] = await Promise.all([
         fetchUnreadNotifications(),
+        fetchExplanation().catch(() => null),
+        fetchTimeline().catch(() => null),
         loadWellness(),
         loadMonitoring(),
       ]);
       setNotifications(notificationData);
+      setExplanation(explData);
+      setTimeline(timeData);
     } catch (err) {
       console.error("Failed to load dashboard data:", err);
     } finally {
@@ -175,7 +185,7 @@ function App() {
     <AuthGate>
       <div className="min-h-screen bg-pro-bg font-sans text-gray-200">
         {/* Header */}
-        <header className="bg-pro-panel/80 backdrop-blur-md border-b border-pro-border sticky top-0 z-10 transition-all">
+        <header className="bg-pro-panel/40 backdrop-blur-2xl border-b border-white/5 sticky top-0 z-50 transition-all shadow-xl">
           <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pro-accent to-purple-600 flex items-center justify-center shadow-glow">
@@ -196,13 +206,16 @@ function App() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-3 text-sm font-medium border-b-2 transition-all duration-200 flex items-center gap-2 ${activeTab === tab.id
-                  ? "border-pro-accent text-white"
-                  : "border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-700"
+                className={`relative py-3 px-2 text-sm font-medium transition-all duration-300 flex items-center gap-2 ${activeTab === tab.id
+                  ? "text-white"
+                  : "text-gray-500 hover:text-gray-300"
                   }`}
               >
-                <span className={activeTab === tab.id ? "opacity-100" : "opacity-60"}>{tab.emoji}</span>
+                <span className={`transition-opacity duration-300 ${activeTab === tab.id ? "opacity-100 drop-shadow-glow" : "opacity-60 grayscale"}`}>{tab.emoji}</span>
                 {tab.label}
+                {activeTab === tab.id && (
+                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-pro-accent to-fuchsia-500 rounded-t-full shadow-glow"></div>
+                )}
               </button>
             ))}
           </div>
@@ -215,11 +228,14 @@ function App() {
           {/* ── Wellness tab ── */}
           {activeTab === "wellness" && (
             <div className="max-w-2xl mx-auto">
+              <DashboardStats history={checkInHistory} score={wellnessScore} />
+
               {wellnessScore && wellnessScore.wellness_score !== null ? (
-                <WellnessMeter data={wellnessScore} />
+                <WellnessMeter data={wellnessScore} explanation={explanation} />
               ) : (
-                <div className="bg-pro-panel border border-pro-border rounded-2xl shadow-panel p-8 text-center">
-                  <div className="inline-flex w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 items-center justify-center mb-6 shadow-glow">
+                <div className="glass-panel text-center relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-transparent to-pro-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                  <div className="inline-flex w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 items-center justify-center mb-6 shadow-glow transition-transform group-hover:scale-105 duration-500 relative z-10">
                     <svg className="w-8 h-8 text-gray-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -230,7 +246,7 @@ function App() {
                   </p>
                   <button
                     onClick={() => setShowCheckInForm(true)}
-                    className="px-6 py-3 bg-white text-black hover:bg-gray-100 rounded-lg font-medium shadow-sm transition-all focus:ring-2 focus:ring-white/20"
+                    className="px-6 py-3 bg-white text-black hover:bg-gray-200 rounded-lg font-medium shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all hover:scale-[1.02] focus:ring-2 focus:ring-white/20 relative z-10"
                   >
                     Start Check-in
                   </button>
@@ -275,6 +291,7 @@ function App() {
               alerts={alerts}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               trends={trends as any[]}
+              timeline={timeline}
               onRefresh={loadAll}
             />
           )}

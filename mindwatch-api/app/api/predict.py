@@ -144,6 +144,31 @@ def get_trends_me(
     )
 
 
+@router.get("/explanation/me", response_model=ExplanationResponse)
+def get_explanation_me(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Get AI explanation for the authenticated user's current risk level."""
+    risk = compute_risk_v3(user_id, db)
+    explanation = build_explanation(
+        risk_level=risk.get("risk_level", "unknown"),
+        confidence=risk.get("confidence", 0.0),
+        reasons=risk.get("reasons", []),
+    )
+    return {"user_id": user_id, **explanation}
+
+
+@router.get("/timeline/me", response_model=UserTimelineResponse)
+def get_timeline_me(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Get the full chronological activity feed for the authenticated user."""
+    timeline = build_user_timeline(user_id, db)
+    return {"user_id": user_id, "timeline": timeline}
+
+
 # ---------------------------------------------------------------------------
 # /{user_id} routes — defined AFTER /me routes
 # ---------------------------------------------------------------------------

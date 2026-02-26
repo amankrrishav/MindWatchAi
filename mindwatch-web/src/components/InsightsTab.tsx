@@ -1,6 +1,9 @@
 import { useState } from "react";
 import type { CheckInRecord, WellnessScore } from "../api/wellness";
 import { acknowledgeAlert, resolveAlert } from "../api/alerts";
+import UserTimeline from "./UserTimeline";
+import CadenceChart from "./CadenceChart";
+import type { UserTimelineResponse } from "../api/timeline";
 
 const SIGNAL_META: Record<string, { label: string; emoji: string; inverted: boolean }> = {
   mood: { label: "Mood", emoji: "😊", inverted: false },
@@ -30,14 +33,17 @@ function riskBadgeClass(level: string) {
 // ── Common Box ────────────────────────────────────────────────────────────
 function TerminalBox({ title, children, rightInfo }: { title: string; children: React.ReactNode; rightInfo?: React.ReactNode }) {
   return (
-    <div className="bg-pro-panel border border-pro-border rounded-xl shadow-panel p-6 overflow-hidden relative">
-      <div className="flex items-center justify-between border-b border-pro-border pb-4 mb-5">
-        <h3 className="font-semibold text-white tracking-tight flex items-center gap-2 text-lg">
-          {title}
-        </h3>
-        {rightInfo && <span className="text-sm font-medium text-gray-500">{rightInfo}</span>}
+    <div className="glass-panel rounded-xl overflow-hidden relative transition-all duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,0.8)]">
+      <div className="absolute inset-0 bg-gradient-to-br from-pro-panel/40 to-pro-bg/40 backdrop-blur-md pointer-events-none -z-10" />
+      <div className="p-6 relative z-10">
+        <div className="flex items-center justify-between border-b border-pro-border/50 pb-4 mb-5">
+          <h3 className="font-semibold text-white tracking-tight flex items-center gap-2 text-lg">
+            {title}
+          </h3>
+          {rightInfo && <span className="text-sm font-medium text-gray-500 bg-gray-900/50 px-2.5 py-1 rounded border border-gray-800">{rightInfo}</span>}
+        </div>
+        {children}
       </div>
-      {children}
     </div>
   );
 }
@@ -459,10 +465,11 @@ interface Props {
   wellnessScore: WellnessScore | null;
   alerts: unknown[];
   trends: unknown[];
+  timeline?: UserTimelineResponse | null;
   onRefresh: () => void;
 }
 
-export default function InsightsTab({ history, wellnessScore, alerts, trends, onRefresh }: Props) {
+export default function InsightsTab({ history, wellnessScore, alerts, trends, timeline, onRefresh }: Props) {
   const hasData = history.length > 0;
 
   if (!hasData) {
@@ -498,6 +505,7 @@ export default function InsightsTab({ history, wellnessScore, alerts, trends, on
         <div className="space-y-6">
           <RiskCard risk={wellnessScore} />
           <WeeklySummary history={history} />
+          <CadenceChart history={history} />
         </div>
         <div className="space-y-6">
           <AlertsCard alerts={alerts} onRefresh={onRefresh} />
@@ -505,6 +513,7 @@ export default function InsightsTab({ history, wellnessScore, alerts, trends, on
         </div>
       </div>
 
+      <UserTimeline events={timeline?.timeline || []} />
       <SignalPatterns history={history} />
       <HistoryList history={history} />
     </div>
