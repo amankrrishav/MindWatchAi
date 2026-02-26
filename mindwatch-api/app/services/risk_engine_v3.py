@@ -125,12 +125,22 @@ def compute_risk_v3(user_id: str, db: Session) -> dict:
     final_score = round(max(0, min(100, base_score)), 1)
     risk_level = _score_to_risk_level(final_score)
 
-    # Confidence calculation: how much data we had
-    confidence = 0.5 # default for checkin
-    if phq9:
-        confidence += 0.3
+    # Confidence calculation: dynamic based on data density
+    import datetime
+    
+    seven_days_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
+    recent_checkins = db.query(WellnessCheckIn).filter(
+        WellnessCheckIn.user_id == user_id,
+        WellnessCheckIn.created_at >= seven_days_ago
+    ).count()
+    
+    # Base confidence grows with data density (up to 0.5 for 5+ recent checkins)
+    confidence = 0.3 + min(0.5, recent_checkins * 0.1)
+    
     if behavior:
         confidence += 0.2
+        
+    confidence = min(1.0, confidence)
         
     return {
         "wellness_score": final_score,

@@ -20,8 +20,9 @@ export default function AuthGate({ children }: { children: ReactElement }) {
       const res = await fn(email, password);
       window.localStorage.setItem("mw_access_token", res.access_token);
       setUser(res.user);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail ?? "Authentication failed");
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setError((err as any)?.response?.data?.detail ?? "Authentication failed");
     } finally {
       setLoading(false);
     }

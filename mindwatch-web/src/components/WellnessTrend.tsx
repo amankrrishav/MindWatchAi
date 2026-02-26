@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { CheckInRecord } from "../api/wellness";
 
 interface Props {
@@ -13,6 +14,9 @@ function getColor(score: number): string {
 }
 
 export default function WellnessTrend({ history }: Props) {
+  // eslint-disable-next-line react-hooks/purity
+  const [now] = useState(Date.now());
+
   if (!history || history.length === 0) return null;
 
   const sorted = [...history].reverse(); // oldest first
@@ -38,14 +42,13 @@ export default function WellnessTrend({ history }: Props) {
   const delta = lastScore - prevScore;
 
   return (
-    <div className="w-full max-w-2xl bg-terminal-panel border border-terminal-border shadow-neon p-6 font-mono relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-green-500/50 to-transparent"></div>
+    <div className="w-full max-w-2xl bg-pro-panel border border-pro-border shadow-panel p-6 rounded-xl font-sans relative overflow-hidden">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-bold text-green-500 uppercase tracking-widest flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-green-500 animate-pulse"></span>
+        <h2 className="text-sm font-bold text-gray-300 uppercase tracking-tight flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
           Trajectory Analysis
         </h2>
-        <span className={`text-sm font-bold font-mono tracking-widest ${delta >= 0 ? "text-green-400" : "text-red-400"}`}>
+        <span className={`text-sm font-semibold tracking-wider ${delta >= 0 ? "text-emerald-400" : "text-red-400"}`}>
           {delta >= 0 ? "∆POS +" : "∆NEG "}{Math.abs(delta).toFixed(1)}
         </span>
       </div>
@@ -63,12 +66,12 @@ export default function WellnessTrend({ history }: Props) {
         <polyline points={points} fill="none" stroke="#4ade80" strokeWidth={1.5} strokeLinejoin="round" className="opacity-80 drop-shadow-[0_0_5px_rgba(74,222,128,0.8)]" />
         {/* Dots */}
         {scores.map((s, i) => (
-          <circle key={i} cx={xScale(i)} cy={yScale(s)} r={3.5} fill={getColor(s)} className="drop-shadow-[0_0_3px_currentColor]" />
+          <circle key={i} cx={xScale(i)} cy={yScale(s)} r={3.5} fill={getColor(s)} />
         ))}
       </svg>
 
-      <div className="flex justify-between text-[10px] text-green-600 uppercase tracking-widest mt-3 pt-3 border-t border-terminal-border/50">
-        <span>T-{Math.round((Date.now() - new Date(sorted[0].created_at).getTime()) / 86400000)}D</span>
+      <div className="flex justify-between text-xs text-gray-400 uppercase font-semibold tracking-wider mt-4 pt-4 border-t border-pro-border">
+        <span>T-{Math.round((now - new Date(sorted[0].created_at).getTime()) / 86400000)}D</span>
         <span>[{sorted.length} RECORDS]</span>
         <span>CURRENT_SYS_TIME</span>
       </div>

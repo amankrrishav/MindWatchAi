@@ -21,10 +21,10 @@ function scoreColor(s: number) {
 }
 
 function riskBadgeClass(level: string) {
-  if (level === "low") return "bg-green-900/40 text-green-400 border border-green-500 shadow-[0_0_5px_rgba(74,222,128,0.5)]";
-  if (level === "medium") return "bg-yellow-900/40 text-yellow-400 border border-yellow-500 shadow-[0_0_5px_rgba(234,179,8,0.5)]";
-  if (level === "high") return "bg-red-900/40 text-red-500 border border-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]";
-  return "bg-terminal-bg text-green-600 border border-terminal-border";
+  if (level === "low") return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+  if (level === "medium") return "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20";
+  if (level === "high") return "bg-red-500/10 text-red-500 border border-red-500/20";
+  return "bg-gray-800 text-gray-400 border border-gray-700";
 }
 
 // ── Common Box ────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ function TerminalBox({ title, children, rightInfo }: { title: string; children: 
         <h3 className="font-semibold text-white tracking-tight flex items-center gap-2 text-lg">
           {title}
         </h3>
-        {rightInfo && <span className="text-sm font-medium text-gray-400">{rightInfo}</span>}
+        {rightInfo && <span className="text-sm font-medium text-gray-500">{rightInfo}</span>}
       </div>
       {children}
     </div>
@@ -62,7 +62,7 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
       {data.map((val, i) => {
         const x = i * dx;
         const y = h - Math.max(0, Math.min(1, (val - min) / (max - min))) * h;
-        return <circle key={i} cx={x} cy={y} r="2.5" fill={color} className="drop-shadow-[0_0_3px_currentColor]" />;
+        return <circle key={i} cx={x} cy={y} r="2.5" fill={color} />;
       })}
     </svg>
   );
@@ -88,7 +88,7 @@ function HeatmapCalendar({ history }: { history: CheckInRecord[] }) {
           const score = byDate.get(d);
           let bg = "bg-pro-bg border border-pro-border rounded-sm";
           if (score !== undefined) {
-            if (score >= 80) bg = "bg-emerald-500 shadow-glow-green rounded-sm";
+            if (score >= 80) bg = "bg-emerald-500 rounded-sm";
             else if (score >= 60) bg = "bg-emerald-600/80 rounded-sm";
             else if (score >= 40) bg = "bg-yellow-500/80 rounded-sm";
             else if (score >= 20) bg = "bg-orange-500/80 rounded-sm";
@@ -103,6 +103,7 @@ function HeatmapCalendar({ history }: { history: CheckInRecord[] }) {
 
 // ── Weekly Summary Card ────────────────────────────────────────────────────
 function WeeklySummary({ history }: { history: CheckInRecord[] }) {
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const week = history.filter(c => now - new Date(c.created_at).getTime() < 7 * 86400_000);
   const prev = history.filter(c => {
@@ -226,8 +227,12 @@ function ConsistencyCard({ history }: { history: CheckInRecord[] }) {
     else if (i > 0) break;
   }
 
-  const lastCheckIn = new Date(history[0].created_at);
-  const hoursAgo = Math.round((Date.now() - lastCheckIn.getTime()) / 3600_000);
+  // Ensure we parse the timestamp as UTC since the backend returns naive UTC strings
+  const createdStr = history[0].created_at.endsWith('Z') ? history[0].created_at : history[0].created_at + 'Z';
+  const lastCheckIn = new Date(createdStr);
+
+  // eslint-disable-next-line react-hooks/purity
+  const hoursAgo = Math.max(0, Math.round((Date.now() - lastCheckIn.getTime()) / 3600_000));
   const lastStr = hoursAgo < 1 ? "Just now" : hoursAgo < 24 ? `${hoursAgo} hrs ago` : `${Math.floor(hoursAgo / 24)} days ago`;
 
   return (
@@ -278,14 +283,14 @@ function RiskCard({ risk }: { risk: WellnessScore | null }) {
             </div>
           </div>
           {risk.reasons.length > 0 && (
-            <div className="bg-pro-bg border border-pro-border rounded-lg p-4 space-y-2">
-              <div className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-3">Primary Drivers</div>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="mt-2 pt-4 border-t border-pro-border">
+              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Primary Drivers</div>
+              <div className="flex flex-wrap gap-2">
                 {risk.reasons.slice(0, 4).map((r, i) => {
-                  const label = typeof r === "string" ? r : `${(r as any).factor}`;
+                  const label = typeof r === "string" ? r : `${(r as Record<string, unknown>).factor}`;
                   return (
-                    <div key={i} className="text-sm text-gray-300 font-medium flex items-center gap-2 bg-pro-panel border border-pro-border rounded px-3 py-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                    <div key={i} className="text-xs text-gray-300 font-medium flex items-center gap-1.5 bg-gray-800/50 border border-gray-700/50 rounded-md px-2.5 py-1.5 shadow-sm">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
                       {label.replace('_', ' ')}
                     </div>
                   );
@@ -302,7 +307,7 @@ function RiskCard({ risk }: { risk: WellnessScore | null }) {
 }
 
 // ── Alerts Card ───────────────────────────────────────────────────────────
-function AlertsCard({ alerts, onRefresh }: { alerts: any[]; onRefresh: () => void }) {
+function AlertsCard({ alerts, onRefresh }: { alerts: unknown[]; onRefresh: () => void }) {
   const handle = async (id: number, action: "ack" | "resolve") => {
     if (action === "ack") await acknowledgeAlert(id);
     else await resolveAlert(id);
@@ -320,6 +325,7 @@ function AlertsCard({ alerts, onRefresh }: { alerts: any[]; onRefresh: () => voi
         </div>
       ) : (
         <div className="space-y-4">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {alerts.map((a: any) => (
             <div key={a.id} className="border border-red-500/20 bg-red-500/5 rounded-lg p-5">
               <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
@@ -390,6 +396,27 @@ function HistoryList({ history }: { history: CheckInRecord[] }) {
 
               {isExp && (
                 <div className="p-5 border-t border-pro-border bg-pro-panel/30">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {(c as any).patterns && (c as any).patterns.length > 0 && (
+                    <div className="mt-2 text-xs font-semibold text-gray-500 uppercase tracking-wider flex flex-wrap gap-2 mt-3 pt-3 border-t border-pro-border">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {(c as any).patterns.map((r: any, i: number) => (
+                        <div key={i} className="text-sm font-medium text-gray-400 capitalize bg-gray-800/50 rounded-lg px-3 py-1.5 shadow-sm border border-gray-700/50">{(r as Record<string, string>).factor?.replace('_', ' ')}</div>
+                      ))}
+                    </div>
+                  )}
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {(c as any).matrix && (
+                    <div className="mt-4 mb-4">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {Object.entries((c as any).matrix).map(([key, val]) => (
+                        <div key={key} className="flex justify-between items-center text-sm py-2 border-b border-pro-border last:border-0 pl-1">
+                          <span className="text-gray-400 capitalize">{key.replace('_', ' ')}</span>
+                          <span className="font-semibold text-gray-200">{((val as Record<string, unknown>).value as string) || JSON.stringify(val)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {Object.keys(SIGNAL_META).map(key => {
                       const val = c[key as keyof CheckInRecord] as number;
@@ -430,8 +457,8 @@ function HistoryList({ history }: { history: CheckInRecord[] }) {
 interface Props {
   history: CheckInRecord[];
   wellnessScore: WellnessScore | null;
-  alerts: any[];
-  trends: any[];
+  alerts: unknown[];
+  trends: unknown[];
   onRefresh: () => void;
 }
 
@@ -455,14 +482,14 @@ export default function InsightsTab({ history, wellnessScore, alerts, trends, on
   return (
     <div className="space-y-6">
       {/* Trend banner */}
-      {trends.filter((t: any) => t.direction === "improving").length > 0 && (
+      {trends.filter((t: unknown) => (t as Record<string, unknown>).direction === "improving").length > 0 && (
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-start gap-4">
           <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
             <span className="text-xl">📈</span>
           </div>
           <div className="pt-1">
             <p className="text-sm font-semibold text-emerald-400">Positive Shift Detected</p>
-            <p className="text-sm text-emerald-500/80 mt-1">{trends.find(t => t.direction === "improving")?.reason}</p>
+            <p className="text-sm text-emerald-500/80 mt-1">{(trends.find((t: unknown) => (t as Record<string, unknown>).direction === "improving") as Record<string, string>)?.reason}</p>
           </div>
         </div>
       )}

@@ -133,7 +133,7 @@ def export_user_data(
             {
                 "id": p.id,
                 "severity": p.severity,
-                "raw_score": p.score,
+                "raw_score": p.total_score,
                 "created_at": p.created_at
             } for p in phq9
         ],

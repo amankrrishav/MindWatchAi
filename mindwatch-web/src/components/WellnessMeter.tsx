@@ -61,7 +61,7 @@ function RadarChart({ signals }: { signals: Record<string, number> }) {
   );
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center">
+    <div className="relative flex items-center justify-center w-[280px] h-[280px]">
       <svg width={size} height={size} viewBox="0 0 220 220">
         {/* Grid rings */}
         {rings.map((pts, idx) => (
@@ -143,7 +143,7 @@ export default function WellnessMeter({ data }: Props) {
         </h2>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-6 items-center">
+      <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-8 items-center w-full">
         {/* Gauge */}
         <div className="relative flex-shrink-0">
           <svg width={220} height={130}>

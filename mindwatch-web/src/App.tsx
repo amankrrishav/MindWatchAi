@@ -98,6 +98,7 @@ function App() {
 
   const [alerts, setAlerts] = useState<unknown[]>([]);
   const [trends, setTrends] = useState<unknown[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -137,7 +138,10 @@ function App() {
     }
   };
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => {
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -267,6 +271,7 @@ function App() {
               history={checkInHistory}
               wellnessScore={wellnessScore}
               alerts={alerts}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               trends={trends as any[]}
               onRefresh={loadAll}
             />
