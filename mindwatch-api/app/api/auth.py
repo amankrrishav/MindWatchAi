@@ -62,7 +62,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
-    token = create_access_token(subject=user.id)
+    token = create_access_token(subject=str(user.id))
     return AuthResponse(
         access_token=token,
         user=UserOut(id=user.id, email=user.email, created_at=user.created_at),
@@ -77,7 +77,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
         )
-    token = create_access_token(subject=user.id)
+    token = create_access_token(subject=str(user.id))
     return AuthResponse(
         access_token=token,
         user=UserOut(id=user.id, email=user.email, created_at=user.created_at),

@@ -29,7 +29,7 @@ def extract_behavior_features(user_id: str, db: Session) -> Optional[BehaviorFea
     events_7d = [e for e in events if e.timestamp and (now - e.timestamp) <= timedelta(days=7)]
     negative_events = [
         e for e in events
-        if e.features and e.features.get("sentiment", 0) < -0.3
+        if e.features and isinstance(e.features, dict) and e.features.get("sentiment", 0) < -0.3
     ]
 
     volatility_score = round(len(events_24h) / max(len(events_7d), 1), 2)

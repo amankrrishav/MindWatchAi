@@ -239,7 +239,16 @@ def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
 
 
 def _alert_to_response(alert: RiskAlert) -> dict:
-    reasons = alert.reasons.split(", ") if alert.reasons else []
+    raw = alert.reasons or []
+    if isinstance(raw, str):
+        reasons = raw.split(", ")
+    else:
+        reasons = []
+        for r in raw:
+            if isinstance(r, dict):
+                reasons.append(f"{r.get('factor', '')}: {r.get('impact', '')}")
+            else:
+                reasons.append(str(r))
     return {
         "id": alert.id,
         "user_id": alert.user_id,

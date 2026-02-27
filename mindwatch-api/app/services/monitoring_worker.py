@@ -136,7 +136,7 @@ async def monitoring_worker() -> None:
                             
                     # weekly digest every Sunday
                     if datetime.utcnow().weekday() == 6:
-                        has_digest = db.query(NotificationIntent.__class__).filter(NotificationIntent.user_id == user_id, NotificationIntent.intent_type == "weekly_digest", NotificationIntent.created_at >= datetime.utcnow() - timedelta(hours=24)).first()
+                        has_digest = db.query(NotificationIntent).filter(NotificationIntent.user_id == user_id, NotificationIntent.intent_type == "weekly_digest", NotificationIntent.created_at >= datetime.utcnow() - timedelta(hours=24)).first()
                         if not has_digest:
                             create_notification_intent(db=db, user_id=user_id, intent_type="weekly_digest", priority="low", reason="Your weekly summary is ready.", source="monitoring_worker", silent_allowed=True)
                             db.commit()
