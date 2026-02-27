@@ -1,30 +1,32 @@
 # MindWatch Architecture
 
+Here's an overview of how I structured the MindWatch monitoring engine and how clients should interact with it.
+
 ## Monitoring Worker: What It Does and Doesn't Do
 
-### What the monitoring worker CAN do (server-side)
+### What it CAN do (Server-Side)
 
-The monitoring worker runs **only on the server**. Every 5 minutes it:
+I built the monitoring worker to run **only on the server**. Every 5 minutes it does the following:
 
-1. Fetches all users who have PHQ-9 data in the database
+1. Fetches all users who have PHQ-9 or Wellness Check-in data stored in my database.
 2. For each user, **reads** from the database:
-   - `PHQ9Analysis` — depression scores from assessments
-   - `BehaviorFeature` — aggregated behavioral metrics (if any exist)
-3. Computes risk (v2 engine) and detects trends
-4. Creates risk snapshots when thresholds are hit
-5. Creates alerts when HIGH risk is sustained (2 consecutive cycles)
-6. Stores trend events (accelerating / recovering)
+   - `PHQ9Analysis` — Depression scores from assessments.
+   - `BehaviorFeature` — Aggregated behavioral metrics (if any exist).
+3. Computes the risk (v2 engine for behavior/PHQ9, v3 engine for wellness signals) and detects trends.
+4. Creates point-in-time risk snapshots when thresholds are hit.
+5. Escalates alerts when HIGH risk is sustained (2 consecutive cycles).
+6. Stores trend events (e.g., accelerating deterioration / recovering).
 
 **The worker does NOT:**
-- Access the user's computer, keyboard, or screen
-- See typing patterns, screen time, or app usage directly
-- "Pull" any data from the user's system
+- Access the user's computer, keyboard, or screen.
+- See typing patterns, screen time, or app usage directly.
+- "Pull" any data from the user's system autonomously.
 
-### How behavioral data gets into the system
+### How Behavioral Data Gets Into My System
 
-Behavioral data (typing patterns, screen time, activity) must be **collected by a client** and **sent to the API**:
+My backend relies on behavioral data (typing patterns, screen time, activity) being **collected by a client** and **sent into the API**. 
 
-```
+```text
 User's device (browser / desktop app / mobile app)
     │
     │  Client collects: typing cadence, idle time, app switches, etc.
@@ -48,13 +50,12 @@ Database: behavior_events → behavior_feature_service extracts → behavior_fea
 Risk Engine v2 uses behavior_features when computing risk
 ```
 
-**What you need to add for real behavioral monitoring:**
+**What I need to build next for real behavioral monitoring:**
+1. **Browser extension** — Tracks time on tab, typing pauses, possibly sentiment from typed text (with explicit user consent).
+2. **Desktop app** (Electron/Tauri) — Can track app usage, idle time, and screen time at the OS level.
+3. **Mobile app** — Can use device APIs for usage patterns (with iOS/Android permissions).
 
-1. **Browser extension** — Tracks time on tab, typing pauses, possibly sentiment from typed text (with consent)
-2. **Desktop app** (Electron/Tauri) — Can track app usage, idle time, screen time
-3. **Mobile app** — Can use device APIs for usage patterns (with permissions)
-
-All of these would **POST to `/ingest/behavior`** periodically. The monitoring worker then processes whatever is already in the database.
+All of these clients would **POST to `/ingest/behavior`** periodically. My monitoring worker then processes whatever behavior events are already ingested in the database.
 
 ### Summary
 
@@ -62,6 +63,6 @@ All of these would **POST to `/ingest/behavior`** periodically. The monitoring w
 |-----------|----------|------|
 | Monitoring worker | Server | Processes DB data, computes risk, creates snapshots/alerts |
 | Orchestration worker | Server | Decides when to ask questions, writes OrchestrationDecision |
-| Daily snapshot worker | Server | Stores 24h risk snapshots for all users |
-| `/ingest/behavior` | API | Receives behavioral events from clients |
-| Client (extension/app) | User's device | Collects and sends behavioral data — **not yet implemented** |
+| Daily snapshot worker | Server | Stores 24h risk snapshots for all users securely |
+| `/ingest/behavior` | API | Receives behavioral events offloaded from clients |
+| Client | User's device | Collects and sends behavioral data — **not yet implemented** |
