@@ -99,26 +99,30 @@ def _run_orchestration_for_user(user_id: str, db: Session) -> None:
     db.commit()
 
 
+def _run_orchestration_batch(shutdown_even_obj):
+    db: Session = SessionLocal()
+    try:
+        phq9_uids = [r[0] for r in db.query(PHQ9Analysis.user_id).distinct().all()]
+        wellness_uids = [r[0] for r in db.query(WellnessCheckIn.user_id).distinct().all()]
+        user_ids = list(set(phq9_uids + wellness_uids))
+        
+        for uid in user_ids:
+            if shutdown_even_obj.is_set():
+                break
+            try:
+                _run_orchestration_for_user(uid, db)
+            except Exception as e:
+                db.rollback()
+                continue
+    finally:
+        db.close()
+
 async def orchestration_worker() -> None:
     """Background worker that creates orchestration decisions for all users with data."""
     from app.config import get_settings
+    from starlette.concurrency import run_in_threadpool
     interval = get_settings().orchestration_interval_seconds
 
     while not shutdown_event.is_set():
-        db: Session = SessionLocal()
-        try:
-            phq9_uids = [r[0] for r in db.query(PHQ9Analysis.user_id).distinct().all()]
-            wellness_uids = [r[0] for r in db.query(WellnessCheckIn.user_id).distinct().all()]
-            user_ids = list(set(phq9_uids + wellness_uids))
-            
-            for uid in user_ids:
-                if shutdown_event.is_set():
-                    break
-                try:
-                    _run_orchestration_for_user(uid, db)
-                except Exception as e:
-                    db.rollback()
-                    continue
-        finally:
-            db.close()
+        await run_in_threadpool(_run_orchestration_batch, shutdown_event)
         await asyncio.sleep(interval)

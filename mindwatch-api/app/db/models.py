@@ -3,7 +3,6 @@ MindWatch database models. Compatible with SQLite (dev) and PostgreSQL (prod).
 """
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import (
-    Column,
     Float,
     Integer,
     String,
